@@ -188,3 +188,46 @@ body.allow-scaling .stim-panel {
   background: #4a6fa5;
   border-radius: 4px;
 }
+
+/* --- Practice feedback -------------------------------------------------- */
+
+/* The chosen image is outlined. Purely visual, so it needs no translation,
+   and it confirms the key mapping without commenting on the choice. */
+.stim-panel.chosen {
+  outline: 6px solid #f0f0f0;
+  outline-offset: -3px;
+  box-shadow: 0 0 24px rgba(255,255,255,.45);
+}
+
+/* --- Catch trials ------------------------------------------------------- */
+
+/* Deliberately unlike BOTH a trial and a break: no card, no images, large
+   text directly on the background. A break screen is a light panel with
+   left-aligned prose; this is the opposite. */
+.catch-screen {
+  text-align: center;
+  color: #fff;
+  padding: 2rem;
+}
+
+.catch-lead {
+  font-size: 1rem;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  opacity: .7;
+  margin-bottom: 1.5rem;
+}
+
+.catch-instruction {
+  font-size: 2.4rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+
+.catch-arrow {
+  font-size: 5rem;
+  line-height: 1;
+  margin-top: 1.5rem;
+  text-shadow: 0 2px 8px rgba(0,0,0,.4);
+}

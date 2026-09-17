@@ -1,25 +1,30 @@
 /* =========================================================================
  * text/ja/instructions.js — every participant-facing string, Japanese.
  *
- * ⚠️  DRAFT TRANSLATION — NOT YET REVIEWED  ⚠️
+ * ⚠️  DRAFT TRANSLATION — NOT REVIEWED BY A NATIVE SPEAKER  ⚠️
  *
- * These strings were drafted as a working placeholder so the Japanese path
- * can be tested end to end. They have NOT been checked by a native speaker.
+ * Written so the Japanese path can be tested end to end. Three strings are
+ * load-bearing for the science and must be checked with Keisuke before any
+ * participant sees them:
  *
- * Two of them are load-bearing for the science and must be reviewed with
- * Keisuke before any participant sees them:
+ *   prompt.main     — the question the study turns on.
+ *   practice.body   — establishes what the participant thinks they judge.
+ *   catch.instruction — must be unmistakable; a confusing translation here
+ *                       produces false exclusions.
  *
- *   prompt.main      — the question the whole study turns on. "how the world
- *                      LOOKED" (visual appearance) must not drift into "how
- *                      the world FELT" (emotional quality), and the
- *                      derealization framing has to match the wording used
- *                      in the CDS-29 screening the participants completed.
+ * The framing rules in text/en/instructions.js apply equally here:
+ *   - NAME the condition (離人感・現実感喪失), never describe its qualities.
+ *     No equivalents of "unreal", "dreamlike", "as if behind glass".
+ *   - Anchor on SURROUNDINGS (周囲の風景), not on the self.
+ *   - Acknowledge the adjustment without specifying colour or haze.
+ *   - Nothing suggesting a detection task ("which looks more edited").
  *
- *   practice.body    — establishes what the participant thinks they are
- *                      judging, and therefore what the responses mean.
+ * The clinical term should match the wording used in the CDS-29 the
+ * participants already completed — worth checking against that instrument
+ * rather than choosing a translation independently.
  *
- * The key structure must stay identical to text/en/instructions.js.
- * validate.js compares the two and refuses to start if they diverge.
+ * Key structure must stay identical to the English file. validate.js
+ * compares the two and refuses to start if they diverge.
  * ========================================================================= */
 
 var TEXT_JA = {
@@ -28,35 +33,45 @@ var TEXT_JA = {
 
   // --- Prompts shown above the image pair -------------------------------
   prompt: {
-    main: 'どちらの画像が、あなたに見えていた世界の見え方に近いですか？',
+    main: 'エピソード中のあなたの周囲の風景の見え方に、より近いのはどちらですか？',
+  },
 
-    catch: '{ARROW} の矢印キーを押してください',
-
-    side_left:  '左',
-    side_right: '右',
+  // --- Catch trials -----------------------------------------------------
+  catch: {
+    lead:        '確認',
+    instruction: '{KEYNAME}の矢印キーを押してください',
+    key_up:      '上',
+    key_down:    '下',
   },
 
   // --- Practice ---------------------------------------------------------
   practice: {
-    title: '練習',
+    title: '課題について',
     body:
-      '<p>同じ場所を写した2枚の画像が並んで表示されます。2枚は加工の' +
-      'しかたが異なります。</p>' +
-      '<p><b>世界が非現実的に、あるいは見慣れないものに感じられたとき</b>の' +
-      '見え方に、より近いと思うほうを選んでください。</p>' +
-      '<p>正解・不正解はありません。最初の印象で選んでください。</p>' +
-      '<p><b>&#8592;</b> と <b>&#8594;</b> の矢印キーで、左右どちらかの画像を' +
+      '<p>先日、ご経験についてのインタビューにご協力いただきました。</p>' +
+      '<p>各試行では、同じ場所を写した2枚の画像が並んで表示されます。' +
+      '2枚は異なる方法で加工されています。</p>' +
+      '<p><b>離人感・現実感喪失のエピソード中</b>に、あなたの周囲の風景が' +
+      'どのように見えていたか、それにより近いほうを選んでください。</p>' +
+      '<p>正解・不正解はありません。記憶力を調べるものでもありません。' +
+      '最初の印象で選んでください。</p>' +
+      '<p><b>&#8592;</b> と <b>&#8594;</b> の矢印キーで、左または右の画像を' +
       '選びます。</p>' +
       '<p>まず練習から始めます。</p>',
     continue_hint: '<b>スペースキー</b>を押すと練習が始まります。',
 
+    feedback_first:
+      'こちらを選びました。正解・不正解はありません。印象のままで結構です。',
+
     end_title: '練習は終了です',
     end_body:
       '<p>練習はこれで終わりです。</p>' +
-      '<p>本番も同じ方法で進みます。約140試行、15分程度かかります。</p>' +
-      '<p>ときどき、選択ではなく特定のキーを押すよう指示される試行があります。' +
-      'これは注意が持続しているかを確認するためのものです。画面の指示に' +
-      '従ってください。</p>',
+      '<p>本番も同じ方法で進みます。約140試行、15分程度かかります。' +
+      '途中に短い休憩があります。</p>' +
+      '<p><b>ときどき、画像のない画面が表示され</b>、特定の矢印キーを押すよう' +
+      '指示されます。これは画面を読んでいるかを確認するためのものです。' +
+      '制限時間はありませんので、ゆっくり読んでください。押せるのは一度' +
+      'だけです。</p>',
     end_hint: '<b>スペースキー</b>を押すと本番が始まります。',
   },
 

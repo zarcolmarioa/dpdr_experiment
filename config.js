@@ -68,6 +68,40 @@ var CONFIG = {
   },
 
   // -----------------------------------------------------------------------
+  // Catch trials.
+  //
+  // A catch trial shows NO IMAGES — just a large instruction naming one
+  // arrow key. Removing the images is what makes the check work: with two
+  // pictures on screen the trained "pick a side" response fires before the
+  // participant reads anything, so an attentive-but-habituated person fails.
+  // With nothing to choose between, the only available action is to read.
+  //
+  // The target is UP or DOWN, never a side, so a reflexive left/right press
+  // fails immediately. A single key avoids OS auto-repeat, which would let
+  // a held key satisfy a two-key sequence by accident.
+  //
+  // ONE PRESS ONLY. The first keypress ends the trial and is scored against
+  // the target — there is no retry. A trial that waited for the correct key
+  // could only ever end in success and would discriminate nothing.
+  //
+  // `sequence` is applied in order to the catch trials as they appear in
+  // trial_list.json, so assignment is deterministic and reproducible.
+  // Balanced 3 up / 3 down: an all-same target would be learnable, which is
+  // the flaw in the correct_response column of trial_list.json (all six are
+  // 'right'). That column is ignored for catch scoring.
+  //
+  // Chance of passing by mashing arrows is 1/4 per trial, so P(4+ of 6) is
+  // about 4%. Mashing left/right — the most likely disengaged behaviour —
+  // fails every time.
+  // -----------------------------------------------------------------------
+  catch_trials: {
+    sequence:   ['ArrowUp', 'ArrowDown', 'ArrowDown',
+                 'ArrowUp', 'ArrowDown', 'ArrowUp'],
+    lockout_ms: 750,   // keys dead for this long, so a carried-over
+                       // reflex press from the previous trial cannot land
+  },
+
+  // -----------------------------------------------------------------------
   // Display.
   //
   // image_px is the on-screen size of each stimulus. The real images are
@@ -137,6 +171,13 @@ var CONFIG = {
     fixation_ms: 500,
     blank_ms:    250,
     break_every: 35,   // break after every N main trials; 0 disables
+
+    // Practice feedback: the chosen image is outlined for this long, on
+    // the first N practice trials only. The remaining practice trials run
+    // exactly like the main block, so the transition is not itself a
+    // change in conditions.
+    practice_feedback_trials: 2,
+    practice_feedback_ms:     900,
   },
 
   // -----------------------------------------------------------------------

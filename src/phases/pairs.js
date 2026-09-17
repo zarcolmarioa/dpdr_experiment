@@ -14,8 +14,18 @@
  * come from the file. Nothing is randomised here: randomisation happened in
  * build_trials.py, where it was checked by simulation.
  *
- * Each trial is three nodes: fixation, the pair, a blank. Only the pair is
- * recorded as block 'pairs'.
+ * Each image trial is three nodes: fixation, the pair, a blank. Only the
+ * pair is recorded as block 'pairs'.
+ *
+ * Two trial types are built differently:
+ *
+ *   CATCH trials show no images at all — see _catchNodes(). This is what
+ *   makes the check work; with pictures on screen the trained "pick a side"
+ *   response fires before anything is read.
+ *
+ *   The first few PRACTICE trials are followed by a feedback screen that
+ *   outlines the chosen image. It confirms the key mapping visually and
+ *   says nothing about why the choice was made.
  * ========================================================================= */
 
 var PairsPhase = (function () {
@@ -29,24 +39,84 @@ var PairsPhase = (function () {
   // the main question. Both come from the text file, never from the
   // `instruction` column of trial_list.json — see loader.js.
   // -----------------------------------------------------------------------
-  function _prompt(row) {
+  function _prompt() {
+    return Loader.text().prompt.main;
+  }
+
+  // -----------------------------------------------------------------------
+  // Catch trials.
+  //
+  // No images. Large text directly on the background — no card — so the
+  // screen resembles neither a trial nor a break. The target is UP or DOWN,
+  // taken from CONFIG.catch_trials.sequence in order, so a reflexive
+  // left/right press fails immediately.
+  //
+  // Built as TWO nodes so the lockout needs no custom key handling:
+  //   1. the same screen with choices 'NO_KEYS' and a fixed duration, so
+  //      any press carried over from the previous trial is discarded;
+  //   2. the live screen with choices 'ALL_KEYS', so a WRONG key actually
+  //      registers and fails. With a restricted choices list jsPsych would
+  //      ignore the wrong key and wait, and the trial could only ever end
+  //      in success.
+  //
+  // No trial_duration on the live node: unlimited time, one press.
+  // -----------------------------------------------------------------------
+  var _catchIndex = 0;
+
+  function _catchKeyFor(index) {
+    var seq = CONFIG.catch_trials.sequence;
+    return seq[index % seq.length];
+  }
+
+  function _catchHTML(targetKey) {
     var T = Loader.text();
-    if (row.trial_type === 'catch') {
-      var isRight = (row.correct_response === 'right');
-      return T.prompt.catch
-        .replace('{SIDE}',  isRight ? T.prompt.side_right : T.prompt.side_left)
-        .replace('{ARROW}', isRight ? '\u2192' : '\u2190');
-    }
-    return T.prompt.main;
+    var isUp = (String(targetKey).toLowerCase() === 'arrowup');
+    var name  = isUp ? T.catch.key_up : T.catch.key_down;
+    var arrow = isUp ? '\u2191' : '\u2193';
+    return (
+      '<div class="catch-screen">' +
+      '<div class="catch-lead">' + T.catch.lead + '</div>' +
+      '<div class="catch-instruction">' +
+      T.catch.instruction.replace('{KEYNAME}', name) +
+      '</div>' +
+      '<div class="catch-arrow">' + arrow + '</div>' +
+      '</div>'
+    );
+  }
+
+  function _catchNodes(row) {
+    var targetKey = _catchKeyFor(_catchIndex++);
+    var html      = _catchHTML(targetKey);
+    var base      = Record.pairTrialData(row);
+    base.catch_key = targetKey;
+
+    return [
+      // 1. Lockout — identical screen, keys inert.
+      {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: html,
+        choices: 'NO_KEYS',
+        trial_duration: CONFIG.catch_trials.lockout_ms,
+        data: { block: 'catch_lockout' },
+      },
+      // 2. Live — any key ends the trial and is scored.
+      {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: html,
+        choices: 'ALL_KEYS',
+        data: base,
+        on_finish: function (data) { Record.finishCatchTrial(data); },
+      },
+    ];
   }
 
   // -----------------------------------------------------------------------
   // One image panel. Size is fixed at CONFIG.display.image_px for every
   // participant — see the note in experiment.css.
   // -----------------------------------------------------------------------
-  function _panel(relativePath) {
+  function _panel(relativePath, chosen) {
     return (
-      '<div class="stim-panel" style="' +
+      '<div class="stim-panel' + (chosen ? ' chosen' : '') + '" style="' +
       'width:'  + CONFIG.display.image_px + 'px;' +
       'height:' + CONFIG.display.image_px + 'px;">' +
       '<img src="' + Loader.imageURL(relativePath) + '" alt="">' +
@@ -57,8 +127,13 @@ var PairsPhase = (function () {
   // -----------------------------------------------------------------------
   // The three nodes making up one trial.
   // -----------------------------------------------------------------------
-  function _trialNodes(row) {
+  function _trialNodes(row, feedbackIndex) {
     var nodes = [];
+
+    // Catch trials have no fixation and no images.
+    if (row.trial_type === 'catch') {
+      return _catchNodes(row);
+    }
 
     nodes.push({
       type: jsPsychHtmlKeyboardResponse,
@@ -71,7 +146,7 @@ var PairsPhase = (function () {
     nodes.push({
       type: jsPsychHtmlKeyboardResponse,
       stimulus:
-        '<div class="stim-prompt">' + _prompt(row) + '</div>' +
+        '<div class="stim-prompt">' + _prompt() + '</div>' +
         '<div class="stim-row" style="gap:' + CONFIG.display.gap_px + 'px;">' +
         _panel(row.left_path) + _panel(row.right_path) +
         '</div>',
@@ -91,6 +166,14 @@ var PairsPhase = (function () {
       },
     });
 
+    // Practice feedback: outline the chosen image. Shown on the first N
+    // practice trials only, so the later practice trials match the main
+    // block exactly.
+    if (feedbackIndex !== undefined &&
+        feedbackIndex < CONFIG.timing.practice_feedback_trials) {
+      nodes.push(_feedbackNode(row, feedbackIndex === 0));
+    }
+
     nodes.push({
       type: jsPsychHtmlKeyboardResponse,
       stimulus: '',
@@ -100,6 +183,41 @@ var PairsPhase = (function () {
     });
 
     return nodes;
+  }
+
+  // -----------------------------------------------------------------------
+  // Practice feedback. Re-renders the same pair with the chosen image
+  // outlined, for a fixed duration.
+  //
+  // It says nothing about WHY the participant chose what they chose.
+  // Confirming a reason ("because you remember it looking that way") would
+  // endorse the choice as meaningful and invite consistency-seeking on
+  // later trials, and would supply an interpretation the participant may
+  // not have had. The outline teaches the key mapping and nothing else.
+  //
+  // Being visual, it also needs no translation.
+  // -----------------------------------------------------------------------
+  function _feedbackNode(row, isFirst) {
+    var T = Loader.text();
+    return {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: function () {
+        var last = jsPsych.data.get().filter({ block: 'pairs' }).last(1).values()[0];
+        var side = last ? last.response_side : null;
+        return (
+          '<div class="stim-prompt">' +
+          (isFirst ? T.practice.feedback_first : '&nbsp;') +
+          '</div>' +
+          '<div class="stim-row" style="gap:' + CONFIG.display.gap_px + 'px;">' +
+          _panel(row.left_path,  side === 'left')  +
+          _panel(row.right_path, side === 'right') +
+          '</div>'
+        );
+      },
+      choices: 'NO_KEYS',
+      trial_duration: CONFIG.timing.practice_feedback_ms,
+      data: { block: 'practice_feedback' },
+    };
   }
 
   // -----------------------------------------------------------------------
@@ -163,8 +281,8 @@ var PairsPhase = (function () {
     if (CONFIG.blocks.practice && practice.length) {
       nodes.push(_screen(T.practice.title, T.practice.body,
                          T.practice.continue_hint, 'practice_intro'));
-      practice.forEach(function (row) {
-        nodes = nodes.concat(_trialNodes(row));
+      practice.forEach(function (row, i) {
+        nodes = nodes.concat(_trialNodes(row, i));
       });
       nodes.push(_screen(T.practice.end_title, T.practice.end_body,
                          T.practice.end_hint, 'practice_end'));

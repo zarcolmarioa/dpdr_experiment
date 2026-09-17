@@ -166,6 +166,18 @@ function runExperiment() {
     document.body.classList.add('allow-scaling');
   }
 
+  // Arrow keys scroll the page by default. There is nothing to scroll in
+  // fullscreen, but suppressing it removes any chance of the screen
+  // shifting under the participant mid-trial. Text fields are exempt so
+  // the ID entry still behaves normally.
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].indexOf(e.key) !== -1) {
+      e.preventDefault();
+    }
+  }, false);
+
   timeline = timeline.concat(_buildPavloviaInit());
   timeline = timeline.concat(ParticipantID.buildNodes(jsPsych));
 

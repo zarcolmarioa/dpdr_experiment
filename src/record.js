@@ -122,10 +122,34 @@ var Record = (function () {
     data.response_key  = data.response;             // raw, as jsPsych gave it
     data.response_side = keyToSide(data.response);
     data.no_response   = (data.response_side === null);
+  }
 
-    if (data.correct_response !== null && data.correct_response !== undefined) {
-      data.catch_pass = (data.response_side === data.correct_response);
-    }
+  // -----------------------------------------------------------------------
+  // Runs after a catch trial. Scores the single keypress against the target.
+  //
+  // The `correct_response` column of trial_list.json is NOT used: it holds
+  // 'right' on all six catch trials, which would be learnable, and catch
+  // trials no longer involve sides at all. The target comes from
+  // CONFIG.catch_trials.sequence instead. That is defensible because the
+  // catch key is an attention probe, not a design factor — it enters no
+  // analysis — whereas trial pairing does and stays in the data file.
+  //
+  // Both the target and the response are recorded. HOW someone failed is
+  // informative: a left or right press means the trained side-choosing
+  // response fired without reading, while a scattered key means general
+  // disengagement.
+  // -----------------------------------------------------------------------
+  function finishCatchTrial(data) {
+    var pressed = (data.response === null || data.response === undefined)
+      ? null : String(data.response).toLowerCase();
+    var target  = String(data.catch_key).toLowerCase();
+
+    data.response_key = data.response;
+    data.catch_pass   = (pressed === target);
+    data.no_response  = (pressed === null);
+
+    // Did the participant press a response key instead of reading?
+    data.catch_pressed_side = (keyToSide(data.response) !== null);
   }
 
   // -----------------------------------------------------------------------
@@ -143,6 +167,7 @@ var Record = (function () {
     keyToSide:         keyToSide,
     pairTrialData:     pairTrialData,
     finishPairTrial:   finishPairTrial,
+    finishCatchTrial:  finishCatchTrial,
     sessionFilename:   sessionFilename,
   };
 })();

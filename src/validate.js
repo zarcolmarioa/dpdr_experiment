@@ -151,21 +151,37 @@ var Validate = (function () {
     }
 
     // --- Catch trials ----------------------------------------------------
+    // The correct_response column of trial_list.json is NOT used: catch
+    // trials no longer involve sides. Targets come from
+    // CONFIG.catch_trials.sequence, so that is what gets checked.
     var catches = trials.filter(function (t) { return t.trial_type === 'catch'; });
-    catches.forEach(function (t) {
-      if (t.correct_response !== 'left' && t.correct_response !== 'right') {
-        errors.push('Catch trial ' + t.trial + ' has correct_response "' +
-                    t.correct_response + '" (expected "left" or "right").');
-      }
+    var seq = (CONFIG.catch_trials && CONFIG.catch_trials.sequence) || [];
+
+    if (seq.length < catches.length) {
+      errors.push('CONFIG.catch_trials.sequence has ' + seq.length +
+                  ' entries but there are ' + catches.length + ' catch ' +
+                  'trials. Targets would repeat and become learnable.');
+    }
+    var badKeys = seq.filter(function (k) {
+      return k !== 'ArrowUp' && k !== 'ArrowDown';
     });
-    // correct_response should appear nowhere else.
-    var strayCR = trials.filter(function (t) {
-      return t.trial_type !== 'catch' &&
-             t.correct_response !== null && t.correct_response !== undefined;
-    });
-    if (strayCR.length) {
-      warnings.push(strayCR.length + ' non-catch trial(s) carry a ' +
-                    'correct_response. They would be scored as catch trials.');
+    if (badKeys.length) {
+      errors.push('CONFIG.catch_trials.sequence contains non-vertical keys: ' +
+                  badKeys.join(', ') + '. A left/right target would be ' +
+                  'satisfied by the trained response without reading.');
+    }
+    var nUp = seq.slice(0, catches.length).filter(function (k) {
+      return k === 'ArrowUp';
+    }).length;
+    var nDown = catches.length - nUp;
+    if (Math.abs(nUp - nDown) > 1) {
+      warnings.push('Catch targets are unbalanced (' + nUp + ' up, ' +
+                    nDown + ' down). A near-constant target is learnable.');
+    }
+    if (!CONFIG.catch_trials || !(CONFIG.catch_trials.lockout_ms > 0)) {
+      warnings.push('No catch-trial lockout. A keypress carried over from ' +
+                    'the previous trial could land before the participant ' +
+                    'has read the screen.');
     }
 
     // --- Consistency trials ----------------------------------------------

@@ -102,6 +102,11 @@ var ScreenCheck = (function () {
             viewport_width_fs:  window.innerWidth,
             viewport_height_fs: window.innerHeight,
             viewport_ok:        _viewportOK(),
+            allow_scaling:      CONFIG.display.allow_scaling,
+            // Whether two panels plus the gap fit without being cut off.
+            images_fit:         (window.innerWidth >=
+                                 CONFIG.display.image_px * 2 +
+                                 CONFIG.display.gap_px),
           });
         },
       });
@@ -112,11 +117,17 @@ var ScreenCheck = (function () {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: function () {
             var hopeless = _viewportHopeless();
+            var scaling = CONFIG.display.allow_scaling;
             var html =
               '<div class="card">' +
-              '<h2>Your screen is smaller than we recommend</h2>' +
-              '<p>This study shows two images side by side. On this screen ' +
-              'they will be shown smaller than intended.</p>' +
+              '<h2>Your screen is smaller than this study needs</h2>' +
+              '<p>This study shows two images side by side at a fixed size, ' +
+              'so that every participant sees them identically.</p>' +
+              (scaling
+                ? '<p>On this screen they will be shown smaller than ' +
+                  'intended.</p>'
+                : '<p><b>On this screen, part of each image would be cut ' +
+                  'off.</b></p>') +
               '<p class="hint">Your display area is ' +
               window.innerWidth + ' &times; ' + window.innerHeight +
               ' pixels. We recommend at least ' +
@@ -175,10 +186,16 @@ var ScreenCheck = (function () {
             'Each panel is rendering at <b>' + _measured.width + ' &times; ' +
             _measured.height + '</b> CSS pixels (target ' + target + ').<br>' +
             (exact
-              ? '<span style="color:#b8f0c0">Exact &mdash; no scaling.</span>'
-              : '<span style="color:#ffd48a">Scaled down to fit this ' +
-                'viewport. Both panels scale identically, so the difference ' +
-                'between them is preserved.</span>') +
+              ? '<span style="color:#b8f0c0">Exact &mdash; fixed size, ' +
+                'no scaling.</span>'
+              : (CONFIG.display.allow_scaling
+                  ? '<span style="color:#ffd48a">Scaled to fit. Both panels ' +
+                    'scale identically, so the difference between them is ' +
+                    'preserved, but display size varies between ' +
+                    'participants.</span>'
+                  : '<span style="color:#ffb3ac">Does not match the target. ' +
+                    'With allow_scaling off this means the panels are being ' +
+                    'cut off by the viewport.</span>')) +
             '<br>Device pixel ratio: ' + window.devicePixelRatio +
             ' &nbsp;|&nbsp; viewport: ' + window.innerWidth + ' &times; ' +
             window.innerHeight +

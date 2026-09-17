@@ -80,6 +80,14 @@ var CONFIG = {
     min_width:     512 * 2 + 32 + 64,   // 1120
     min_height:    512 + 168,           // 680
     hard_min_width: 800,                // below this, no override offered
+
+    // false (default): every participant sees panels at exactly image_px.
+    //   Removes between-participant variation in the physical size of the
+    //   manipulation. On a viewport too small to fit them, the panels are
+    //   CUT OFF rather than shrunk — which is why the viewport gate matters.
+    // true: panels shrink to fit. Nothing is cut off, but display size
+    //   varies between participants and must be treated as a covariate.
+    allow_scaling: false,
   },
 
   // -----------------------------------------------------------------------

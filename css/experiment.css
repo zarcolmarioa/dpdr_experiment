@@ -67,20 +67,38 @@ html, body {
 
 .stim-row {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
 }
 
-/* Images never exceed the viewport. Both panels scale identically, so the
-   difference between them — which is what the predictors measure — is
-   preserved even when the display is smaller than image_px. */
+/* FIXED SIZE FOR EVERY PARTICIPANT.
+   The panel is exactly CONFIG.display.image_px, set inline. It does NOT
+   shrink to fit the viewport: if one participant saw 400 px panels and
+   another 600, the physical size of the manipulation would differ between
+   them before device pixel ratio even entered. A fixed box removes the
+   larger source of between-participant variation.
+
+   box-sizing: border-box draws the 1 px border INSIDE the box, so a 512 px
+   panel holds a 512 px image rather than measuring 514.
+
+   flex: 0 0 auto stops flexbox from shrinking the panels on a narrow
+   viewport, which would silently reintroduce the scaling this removes. */
 .stim-panel {
-  max-width: 45vw;
-  max-height: 75vh;
+  box-sizing: border-box;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(0,0,0,.25);
+}
+
+/* Escape hatch: only applied when CONFIG.display.allow_scaling is true.
+   Permits the panels to shrink on small screens, at the cost of the
+   fixed-size guarantee above. Off by default. */
+body.allow-scaling .stim-panel {
+  max-width: 45vw;
+  max-height: 75vh;
 }
 
 .stim-panel img {

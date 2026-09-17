@@ -160,6 +160,11 @@ function _buildCompletionNode() {
 function runExperiment() {
   var timeline = [];
 
+  // Panels are a fixed size unless scaling is explicitly permitted.
+  if (CONFIG.display.allow_scaling) {
+    document.body.classList.add('allow-scaling');
+  }
+
   timeline = timeline.concat(_buildPavloviaInit());
   timeline = timeline.concat(ParticipantID.buildNodes(jsPsych));
 

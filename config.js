@@ -83,6 +83,18 @@ var CONFIG = {
   },
 
   // -----------------------------------------------------------------------
+  // Calibration and screen handling.
+  //
+  // fullscreen is required for the real experiment: it fixes the viewport
+  // so the stimuli are the same size throughout, and removes browser
+  // chrome that would otherwise eat vertical space.
+  // -----------------------------------------------------------------------
+  calibration: {
+    fullscreen:   true,
+    screen_check: true,   // soft gate + override on small viewports
+  },
+
+  // -----------------------------------------------------------------------
   // Trial timing (milliseconds).
   // -----------------------------------------------------------------------
   timing: {

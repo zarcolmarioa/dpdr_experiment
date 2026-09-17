@@ -15,6 +15,14 @@
  * If both are written, one silently overwrites the other and a column is
  * lost with no error. So the design label is renamed to `pair_type` on
  * output. trial_list.json itself is never modified.
+ *
+ * KEY CASE, IMPORTANT
+ * -------------------
+ * jsPsych 7 returns key names LOWERCASED: 'arrowleft', not 'ArrowLeft'.
+ * CONFIG.keys uses the standard KeyboardEvent spelling, so every comparison
+ * between a recorded key and a configured key must be case-insensitive.
+ * Comparing them directly leaves response_side null on EVERY trial, which
+ * is silent because the raw `response` column still looks correct.
  * ========================================================================= */
 
 var Record = (function () {
@@ -55,6 +63,21 @@ var Record = (function () {
   }
 
   // -----------------------------------------------------------------------
+  // Map a recorded key onto a side.
+  //
+  // BOTH sides of the comparison are lowercased, so this keeps working
+  // whichever spelling jsPsych returns and whichever spelling is written
+  // in CONFIG.keys. See the KEY CASE note in the header.
+  // -----------------------------------------------------------------------
+  function keyToSide(key) {
+    if (key === null || key === undefined) return null;
+    var k = String(key).toLowerCase();
+    if (k === String(CONFIG.keys.left).toLowerCase())  return 'left';
+    if (k === String(CONFIG.keys.right).toLowerCase()) return 'right';
+    return null;
+  }
+
+  // -----------------------------------------------------------------------
   // Per-trial data for a stimulus pair.
   //
   // `row` is one entry from trial_list.json. The returned object is attached
@@ -89,16 +112,16 @@ var Record = (function () {
   // -----------------------------------------------------------------------
   // Runs after a pair trial finishes. Converts the pressed key into a side,
   // and scores catch trials.
+  //
+  // There is no response timeout in this experiment, so `no_response` should
+  // never be true. It is recorded anyway: if it ever appears, key handling
+  // has gone wrong and those rows need inspecting rather than silently
+  // entering the analysis as missing data.
   // -----------------------------------------------------------------------
   function finishPairTrial(data) {
-    if (data.response === CONFIG.keys.left) {
-      data.response_side = 'left';
-    } else if (data.response === CONFIG.keys.right) {
-      data.response_side = 'right';
-    } else {
-      data.response_side = null;       // no response / timeout
-    }
-    data.response_key = data.response;
+    data.response_key  = data.response;             // raw, as jsPsych gave it
+    data.response_side = keyToSide(data.response);
+    data.no_response   = (data.response_side === null);
 
     if (data.correct_response !== null && data.correct_response !== undefined) {
       data.catch_pass = (data.response_side === data.correct_response);
@@ -117,6 +140,7 @@ var Record = (function () {
   return {
     stampSessionStart: stampSessionStart,
     stampSessionEnd:   stampSessionEnd,
+    keyToSide:         keyToSide,
     pairTrialData:     pairTrialData,
     finishPairTrial:   finishPairTrial,
     sessionFilename:   sessionFilename,

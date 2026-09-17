@@ -14,6 +14,9 @@
 
 var MockPhase = (function () {
 
+  // Rendered panel size of the most recent trial, captured in on_load.
+  var _lastPanel = null;
+
   // Stand-ins for the real image pairs. The colour difference makes it
   // obvious on screen which side is which, so you can confirm the recorded
   // response_side matches the key actually pressed.
@@ -100,7 +103,18 @@ var MockPhase = (function () {
             repeat_of:        null,
             display_px:       CONFIG.display.image_px,
           },
-          on_finish: function (data) { Record.finishPairTrial(data); },
+          on_load: function () {
+            // Record what the panels actually rendered at, per trial.
+            var el = document.querySelector('.stim-panel');
+            if (el) {
+              var r = el.getBoundingClientRect();
+              _lastPanel = Math.round(r.width) + 'x' + Math.round(r.height);
+            }
+          },
+          on_finish: function (data) {
+            data.panel_rendered_px = _lastPanel;
+            Record.finishPairTrial(data);
+          },
         });
 
         // Blank

@@ -12,9 +12,10 @@
  * steps 1 and 3. Nothing about the save path changes.
  * ========================================================================= */
 
-/* global CONFIG, ParticipantID, Record, MockPhase,
+/* global CONFIG, ParticipantID, Record, MockPhase, ScreenCheck,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
-          jsPsychCallFunction, jsPsychPipe, jsPsychPavlovia */
+          jsPsychCallFunction, jsPsychFullscreen, jsPsychPipe,
+          jsPsychPavlovia */
 
 var jsPsych = initJsPsych({
   on_finish: function () {
@@ -61,6 +62,9 @@ function _buildSaveNodes() {
   nodes.push({
     type: jsPsychCallFunction,
     func: function () {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(function () {});
+      }
       Record.stampSessionEnd(jsPsych, {
         viewport_width_end:  window.innerWidth,
         viewport_height_end: window.innerHeight,
@@ -168,6 +172,9 @@ function runExperiment() {
       );
     },
   });
+
+  // Fullscreen, viewport gate, and (in debug) the stimulus size check.
+  timeline = timeline.concat(ScreenCheck.buildNodes(jsPsych));
 
   timeline = timeline.concat(MockPhase.buildNodes(jsPsych));
   timeline = timeline.concat(_buildSaveNodes());

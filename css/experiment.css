@@ -161,3 +161,30 @@ body.allow-scaling .stim-panel {
   font-size: .95rem;
   line-height: 1.5;
 }
+
+/* --- Stimulus images --------------------------------------------------- */
+
+/* The img fills its fixed-size panel exactly. Source images are 512 x 512
+   and image_px is 512, so this is 1:1 with no resampling. */
+.stim-panel img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* --- Preload progress bar ---------------------------------------------- */
+
+.jspsych-preload-progress-bar-container {
+  max-width: 480px;
+  margin: 1.5rem auto 0;
+  background: rgba(0,0,0,.2);
+  border-radius: 4px;
+}
+
+.jspsych-preload-progress-bar {
+  background: #4a6fa5;
+  border-radius: 4px;
+}

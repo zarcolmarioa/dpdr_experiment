@@ -12,10 +12,11 @@
  * steps 1 and 3. Nothing about the save path changes.
  * ========================================================================= */
 
-/* global CONFIG, ParticipantID, Record, MockPhase, ScreenCheck,
+/* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, ScreenCheck,
+          Loader, Validate, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
-          jsPsychCallFunction, jsPsychFullscreen, jsPsychPipe,
-          jsPsychPavlovia */
+          jsPsychCallFunction, jsPsychFullscreen, jsPsychPreload,
+          jsPsychPipe, jsPsychPavlovia */
 
 var jsPsych = initJsPsych({
   on_finish: function () {
@@ -181,13 +182,77 @@ function runExperiment() {
   // Fullscreen, viewport gate, and (in debug) the stimulus size check.
   timeline = timeline.concat(ScreenCheck.buildNodes(jsPsych));
 
-  timeline = timeline.concat(MockPhase.buildNodes(jsPsych));
+  // Start downloading the stimuli in the BACKGROUND. This does not block:
+  // the participant carries on with the screens above while the images
+  // arrive. PairsPhase then gates on completion just before practice.
+  timeline.push({
+    type: jsPsychCallFunction,
+    func: function () {
+      try {
+        jsPsych.pluginAPI.preloadImages(Loader.preloadURLs());
+        if (CONFIG.debug) {
+          console.log('[Preload] background download started (' +
+                      Loader.preloadURLs().length + ' images).');
+        }
+      } catch (e) {
+        console.warn('[Preload] background start failed; the gate will ' +
+                     'download them instead.', e);
+      }
+    },
+  });
+
+  if (CONFIG.blocks.mock) {
+    timeline = timeline.concat(MockPhase.buildNodes(jsPsych));
+  } else {
+    timeline = timeline.concat(PairsPhase.buildNodes(jsPsych));
+  }
   timeline = timeline.concat(_buildSaveNodes());
   timeline.push(_buildCompletionNode());
 
   jsPsych.run(timeline);
 }
 
-// Entry point. index.html loads this file last, with `defer`, so the DOM
-// exists by the time this runs.
-runExperiment();
+// ---------------------------------------------------------------------------
+// Fatal error screen — shown when the data files cannot be loaded at all.
+// ---------------------------------------------------------------------------
+function _showFatal(message) {
+  var T = (typeof TEXT_EN !== 'undefined') ? TEXT_EN : null;
+  var title = T ? T.error.title : 'Something went wrong';
+  var body  = T ? T.error.body  : '<p>The study could not start.</p>';
+  var html  = '<div class="card"><h2>' + title + '</h2>' + body;
+  if (CONFIG.debug && message) {
+    html += '<div class="debug-box"><pre>' + message + '</pre></div>';
+  }
+  html += '</div>';
+  document.body.innerHTML =
+    '<div class="jspsych-display-element"><div>' + html + '</div></div>';
+  console.error('[Fatal] ' + message);
+}
+
+// ---------------------------------------------------------------------------
+// Entry point.
+//
+// Data files are loaded and validated BEFORE the timeline is built, so a
+// broken trial list stops the session at the first screen rather than
+// producing grey boxes partway through.
+// ---------------------------------------------------------------------------
+Loader.loadAll()
+  .then(function (data) {
+    var result = Validate.run(data);
+    if (CONFIG.debug) Validate.report(result);
+
+    if (!result.ok) {
+      if (CONFIG.debug) {
+        document.body.innerHTML =
+          '<div class="jspsych-display-element"><div>' +
+          Validate.toHTML(result) + '</div></div>';
+      } else {
+        _showFatal('Validation failed: ' + result.errors.join(' | '));
+      }
+      return;
+    }
+    runExperiment();
+  })
+  .catch(function (err) {
+    _showFatal(err && err.message ? err.message : String(err));
+  });

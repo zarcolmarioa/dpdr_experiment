@@ -91,6 +91,34 @@ var CONFIG = {
   },
 
   // -----------------------------------------------------------------------
+  // Language. 'en' | 'ja'. ?lang=en or ?lang=ja in the URL overrides this,
+  // which is useful for checking both without editing the file.
+  // -----------------------------------------------------------------------
+  language: 'en',
+
+  // -----------------------------------------------------------------------
+  // Data files and where the stimulus images live.
+  //
+  // Paths inside trial_list.json look like 'stimuli/xxx.png'. stimulus_base
+  // is prefixed to them, so the images are served from data/stimuli/.
+  // -----------------------------------------------------------------------
+  data: {
+    trial_list:     'data/trial_list.json',
+    preload:        'data/preload.json',
+    stimulus_base:  'data/',
+  },
+
+  // -----------------------------------------------------------------------
+  // Which blocks run. Each can be switched off independently, so a single
+  // phase can be tested without sitting through the whole session.
+  // -----------------------------------------------------------------------
+  blocks: {
+    practice: true,
+    main:     true,
+    mock:     false,   // the six placeholder trials; superseded by 'main'
+  },
+
+  // -----------------------------------------------------------------------
   // Calibration and screen handling.
   //
   // fullscreen is required for the real experiment: it fixes the viewport
@@ -108,6 +136,7 @@ var CONFIG = {
   timing: {
     fixation_ms: 500,
     blank_ms:    250,
+    break_every: 35,   // break after every N main trials; 0 disables
   },
 
   // -----------------------------------------------------------------------

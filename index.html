@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visual Experience Study</title>
+
+  <!-- ===================================================================
+       Every script below is loaded EXACTLY ONCE. If you add a script,
+       check it is not already present: a duplicated src/main.js runs the
+       entry point twice, which is hard to diagnose from the symptoms.
+       =================================================================== -->
+
+  <!-- jsPsych core ---------------------------------------------------- -->
+  <script src="lib/vendors/jspsych-7.1.2/jspsych.js"></script>
+  <link  href="lib/vendors/jspsych-7.1.2/jspsych.css" rel="stylesheet">
+
+  <!-- jsPsych plugins used by the smoke test -------------------------- -->
+  <script src="lib/vendors/jspsych-7.1.2/plugin-html-keyboard-response.js"></script>
+  <script src="lib/vendors/jspsych-7.1.2/plugin-survey-text.js"></script>
+  <script src="lib/vendors/jspsych-7.1.2/plugin-call-function.js"></script>
+
+  <!-- DataPipe (GitHub Pages hosting). Harmlessly 404s on Pavlovia. ---- -->
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe@0.4/dist/index.browser.min.js"></script>
+
+  <!-- Pavlovia (Pavlovia hosting). Harmlessly 404s on GitHub Pages. ---- -->
+  <script src="lib/vendors/jquery-2.2.0.min.js"></script>
+  <script src="jspsych-7-pavlovia-2021.12.js"></script>
+
+  <!-- Styles ---------------------------------------------------------- -->
+  <link href="css/experiment.css" rel="stylesheet">
+
+  <!-- Configuration and experiment code ------------------------------- -->
+  <script src="config.js"></script>
+  <script src="src/record.js"></script>
+  <script src="src/participant-id.js"></script>
+  <script src="src/phases/mock.js"></script>
+</head>
+
+<body>
+  <!-- main.js is deferred so the body exists before the timeline runs. -->
+  <script src="src/main.js" defer></script>
+</body>
+</html>

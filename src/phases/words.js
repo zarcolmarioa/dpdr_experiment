@@ -48,8 +48,10 @@ var WordsPhase = (function () {
   function _labels(W) {
     var out = [];
     for (var i = 0; i < N_POINTS; i++) {
-      if (i === 0)                out.push('0<br><span class="anchor">' + W.anchor_low  + '</span>');
-      else if (i === N_POINTS - 1) out.push('6<br><span class="anchor">' + W.anchor_high + '</span>');
+      // The anchor text is absolutely positioned by the CSS, so it adds no
+      // height to the row — only the 0 and the 6 carry one.
+      if (i === 0)                 out.push('0<span class="anchor">' + W.anchor_low  + '</span>');
+      else if (i === N_POINTS - 1) out.push('6<span class="anchor">' + W.anchor_high + '</span>');
       else                         out.push(String(i));
     }
     return out;

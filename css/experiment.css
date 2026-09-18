@@ -337,38 +337,97 @@ body.allow-scaling .stim-panel {
 
 /* --- Word rating task --------------------------------------------------- */
 
-.word-preamble { max-width: 720px; margin-bottom: 1.2rem; }
+/* Layout goals, in order:
+   1. All ten words visible at once, or nearly so. The ratings are more
+      consistent when the words can be compared against each other; that
+      only works if they are on screen together.
+   2. The row should READ as a scale. jsPsych renders bare radio buttons in
+      a wide row, which does not look like a continuum. A track drawn
+      through them supplies that without changing the control — radios keep
+      the empty initial state that a slider lacks, which matters because
+      most fillers should legitimately be rated 0. */
 
-.word-item {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #111;
+.word-preamble {
+  max-width: 760px;
+  margin: 0 auto 1rem;
+  padding: 1rem 1.4rem;
+  font-size: .92rem;
 }
+.word-preamble p { margin: .45rem 0; }
 
-/* jsPsych's survey-likert renders on the page background; give it a panel
-   so the words are readable against the mid-grey. */
+/* One panel per word: the label and its scale share a single box, instead
+   of the two stacked boxes jsPsych produces by default. */
 .jspsych-survey-likert-statement,
 .jspsych-survey-likert-opts {
   background: #f4f4f4;
   color: #111;
+  margin: 0;
 }
 
 .jspsych-survey-likert-statement {
-  padding: .8rem 1rem .2rem;
+  padding: .5rem 1rem 0;
   border-radius: 6px 6px 0 0;
-  margin-top: .6rem;
+  margin-top: .4rem;
+  text-align: left;
+  font-weight: 400;
 }
 
 .jspsych-survey-likert-opts {
-  padding: 0 1rem .8rem;
+  padding: .1rem 1rem .5rem;
   border-radius: 0 0 6px 6px;
-  margin-bottom: .2rem;
+  position: relative;
 }
 
-.jspsych-survey-likert-opt-label { font-size: .85rem; line-height: 1.25; }
+/* The scale track. Sits behind the buttons, inset so it runs between the
+   first and last rather than past them. */
+.jspsych-survey-likert-opts::before {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  /* Vertical alignment with the radio centres. This is the one value that
+     can only be set by eye — if the line sits above or below the buttons,
+     adjust it here. */
+  top: var(--track-offset, 0.62rem);
+  height: 2px;
+  background: #ccc;
+  z-index: 0;
+}
 
+.jspsych-survey-likert-opts li { position: relative; z-index: 1; }
+
+.jspsych-survey-likert-opts input[type="radio"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #4a6fa5;
+  background: #f4f4f4;
+  cursor: pointer;
+}
+
+.word-item {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+
+.jspsych-survey-likert-opt-label {
+  font-size: .8rem;
+  line-height: 1.15;
+  color: #444;
+}
+
+/* Endpoint wording, under the 0 and the 6 only. Absolutely positioned so
+   it does not add height to every row. */
 .jspsych-survey-likert-opt-label .anchor {
-  font-size: .72rem;
-  color: #666;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: .68rem;
+  color: #777;
   font-weight: 400;
+  margin-top: .05rem;
 }
+
+/* Keep the whole set on one page where the viewport allows. */
+.jspsych-content { padding-top: .5rem; padding-bottom: .5rem; }

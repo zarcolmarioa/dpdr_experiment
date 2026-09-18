@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!-- =======================================================================
+     dev.html — developer entry point. NOT for participants.
+
+     Identical to index.html except that it sets window.DEV_MODE and loads
+     src/dev-menu.js. main.js sees the flag and shows the block jumper
+     instead of starting the session, so any single block can be reached in
+     seconds rather than by sitting through the whole study.
+
+     Every session started here is stamped is_dev = true on every row.
+
+     Participants use index.html, which does not load the menu.
+     ======================================================================= -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DEV — Visual Experience Study</title>
+
+  <!-- ===================================================================
+       Every script below is loaded EXACTLY ONCE. If you add a script,
+       check it is not already present: a duplicated src/main.js runs the
+       entry point twice, which is hard to diagnose from the symptoms.
+       =================================================================== -->
+
+  <!-- jsPsych core ---------------------------------------------------- -->
+  <script src="lib/vendors/jspsych-7.1.2/jspsych.js"></script>
+  <link  href="lib/vendors/jspsych-7.1.2/jspsych.css" rel="stylesheet">
+
+  <!-- jsPsych plugins used by the smoke test -------------------------- -->
+  <script src="lib/vendors/jspsych-7.1.2/plugin-html-keyboard-response.js"></script>
+  <script src="lib/vendors/jspsych-7.1.2/plugin-survey-text.js"></script>
+  <script src="lib/vendors/jspsych-7.1.2/plugin-call-function.js"></script>
+  <script src="lib/vendors/jspsych-7.1.2/plugin-fullscreen.js"></script>
+  <script src="lib/vendors/jspsych-7.1.2/plugin-preload.js"></script>
+
+  <!-- DataPipe (GitHub Pages hosting). Harmlessly 404s on Pavlovia. ---- -->
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe@0.4/dist/index.browser.min.js"></script>
+
+  <!-- Pavlovia (Pavlovia hosting). Harmlessly 404s on GitHub Pages. ---- -->
+  <script src="lib/vendors/jquery-2.2.0.min.js"></script>
+  <script src="jspsych-7-pavlovia-2021.12.js"></script>
+
+  <!-- Styles ---------------------------------------------------------- -->
+  <link href="css/experiment.css" rel="stylesheet">
+
+  <!-- Configuration and experiment code ------------------------------- -->
+  <script src="config.js"></script>
+
+  <!-- Participant-facing text. Both languages load; CONFIG.language picks. -->
+  <script src="text/en/instructions.js"></script>
+  <script src="text/ja/instructions.js"></script>
+
+  <script src="src/loader.js"></script>
+  <script src="src/validate.js"></script>
+  <script src="src/record.js"></script>
+  <script src="src/participant-id.js"></script>
+  <script src="src/calibration/screen-check.js"></script>
+  <script src="src/phases/mock.js"></script>
+  <script src="src/phases/pairs.js"></script>
+
+  <!-- Developer menu. Loaded ONLY here, never by index.html. -->
+  <script>window.DEV_MODE = true;</script>
+  <script src="src/dev-menu.js"></script>
+</head>
+
+<body>
+  <!-- main.js is deferred so the body exists before the timeline runs. -->
+  <script src="src/main.js" defer></script>
+</body>
+</html>

@@ -166,9 +166,25 @@ var CONFIG = {
   // phase can be tested without sitting through the whole session.
   // -----------------------------------------------------------------------
   blocks: {
-    practice: true,
-    main:     true,
-    mock:     false,   // the six placeholder trials; superseded by 'main'
+    size_check: true,   // the panel-size verification screen
+    practice:   true,
+    main:       true,
+    mock:       false,  // six placeholder trials; superseded by 'main'
+  },
+
+  // -----------------------------------------------------------------------
+  // Limits. For quick testing only — leave at 0 for real sessions.
+  //
+  // max_trials truncates the main block to its first N trials. Useful for
+  // confirming an upload reaches OSF without sitting through 137 trials.
+  //
+  // A truncated session is NOT valid data: it will be missing catch and
+  // consistency trials, and the predictor spread the analysis depends on.
+  // Any session run with a limit is stamped `is_dev = true`.
+  // -----------------------------------------------------------------------
+  limits: {
+    max_trials:   0,   // 0 = all main trials
+    max_practice: 0,   // 0 = all practice trials
   },
 
   // -----------------------------------------------------------------------

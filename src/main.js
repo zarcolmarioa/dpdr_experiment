@@ -13,7 +13,7 @@
  * ========================================================================= */
 
 /* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, ScreenCheck,
-          Loader, Validate, TEXT_EN, TEXT_JA,
+          Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
           jsPsychCallFunction, jsPsychFullscreen, jsPsychPreload,
           jsPsychPipe, jsPsychPavlovia */
@@ -188,6 +188,12 @@ function runExperiment() {
       Record.stampSessionStart(
         jsPsych, ParticipantID.get(), ParticipantID.isSuperuser()
       );
+      // Mark anything started from dev.html, or run with a trial limit, so
+      // it can never be mistaken for a real session.
+      jsPsych.data.addProperties({
+        is_dev: !!window.DEV_MODE ||
+                (CONFIG.limits && CONFIG.limits.max_trials > 0),
+      });
     },
   });
 
@@ -261,6 +267,13 @@ Loader.loadAll()
       } else {
         _showFatal('Validation failed: ' + result.errors.join(' | '));
       }
+      return;
+    }
+
+    // dev.html sets window.DEV_MODE and loads dev-menu.js. index.html does
+    // neither, so a participant can never reach the menu.
+    if (window.DEV_MODE && typeof DevMenu !== 'undefined') {
+      DevMenu.show(result.summary, runExperiment);
       return;
     }
     runExperiment();

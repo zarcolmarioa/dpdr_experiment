@@ -242,11 +242,11 @@ var PairsPhase = (function () {
   // already invested several minutes and are far more likely to stay than
   // they would have been at a progress bar on the very first screen.
   // -----------------------------------------------------------------------
-  function _preloadGate() {
+  function _preloadGate(images) {
     var T = Loader.text();
     return {
       type: jsPsychPreload,
-      images: Loader.preloadURLs(),
+      images: images || Loader.preloadURLs(),
       message: T.preload.message,
       show_progress_bar: true,
       continue_after_error: false,
@@ -275,7 +275,31 @@ var PairsPhase = (function () {
     var main     = all.filter(function (t) { return t.trial_type !== 'practice'; });
     var nodes    = [];
 
-    nodes.push(_preloadGate());
+    // Testing limits. Truncation drops catch and consistency trials, so a
+    // limited session is never valid data — main.js stamps is_dev on it.
+    var lim = CONFIG.limits || {};
+    if (lim.max_practice > 0) practice = practice.slice(0, lim.max_practice);
+    if (lim.max_trials   > 0) main     = main.slice(0, lim.max_trials);
+
+    // Preload only the images this session will actually show — which
+    // depends on BOTH the block flags and the trial limits. On a full
+    // session that is all of them; on a truncated test it is a handful, so
+    // the upload can be checked without waiting for 63 MB.
+    var willShow = [];
+    if (CONFIG.blocks.practice) willShow = willShow.concat(practice);
+    if (CONFIG.blocks.main)     willShow = willShow.concat(main);
+
+    var needed = {};
+    willShow.forEach(function (t) {
+      if (t.trial_type === 'catch') return;      // catch trials show no images
+      needed[Loader.imageURL(t.left_path)]  = true;
+      needed[Loader.imageURL(t.right_path)] = true;
+    });
+
+    // No images to wait for means no gate: skip it entirely rather than
+    // showing a progress bar that completes instantly.
+    var images = Object.keys(needed);
+    if (images.length) nodes.push(_preloadGate(images));
 
     // --- Practice --------------------------------------------------------
     if (CONFIG.blocks.practice && practice.length) {

@@ -159,8 +159,10 @@ var ScreenCheck = (function () {
     }
 
     // --- 3. Stimulus size check -----------------------------------------
-    // Debug only: confirms the panels render at the configured size.
-    if (CONFIG.debug) {
+    // Confirms the panels render at the configured size. Its own block flag
+    // so it can be run on its own from dev.html, or switched off for a real
+    // session without turning off debug everywhere else.
+    if (CONFIG.blocks.size_check) {
       nodes.push({
         type: jsPsychHtmlKeyboardResponse,
         stimulus:

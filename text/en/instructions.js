@@ -88,6 +88,37 @@ var TEXT_EN = {
     end_hint: 'Press <b>SPACE</b> to begin.',
   },
 
+  // --- Calibration ------------------------------------------------------
+  // Shown before the task. These screens exist because the manipulations
+  // are saturation and shadow lifting, so the display is part of the
+  // measurement — see the module headers in src/calibration/.
+  calibration: {
+    button_continue: 'Continue',
+
+    brightness_title: 'Before we begin &mdash; screen brightness',
+    brightness_intro:
+      '<p>Some of the pictures in this study differ only in their darker ' +
+      'areas. If your screen is dimmed, those differences disappear.</p>' +
+      '<p>Please turn your screen brightness up to its <strong>highest ' +
+      'setting</strong> now, and leave it there for the whole session.</p>',
+    brightness_checkbox:
+      'Please confirm that your screen brightness is set to maximum.',
+
+    gamma_intro:
+      '<p>Next we will measure a property of your screen that affects how ' +
+      'brightness is displayed. You will do a short matching task ' +
+      '<strong>three times</strong>.</p>' +
+      '<p>Each time, you will see two patterns side by side. Adjust the ' +
+      'right one until the two look like the same shade of grey.</p>' +
+      '<p>Sitting back slightly, or squinting, can make the match easier ' +
+      'to judge.</p>',
+    gamma_button: 'Begin',
+    gamma_prompt:
+      'Adjust the RIGHT square until both squares look the same shade of ' +
+      'grey. Click Confirm when they match.',
+    gamma_confirm_button: 'Confirm match',
+  },
+
   // --- Breaks -----------------------------------------------------------
   brk: {
     title: 'Short break',

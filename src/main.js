@@ -13,10 +13,11 @@
  * ========================================================================= */
 
 /* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, ScreenCheck,
+          BrightnessConfirmation, GammaCalibration,
           Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
           jsPsychCallFunction, jsPsychFullscreen, jsPsychPreload,
-          jsPsychPipe, jsPsychPavlovia */
+          jsPsychHtmlButtonResponse, jsPsychPipe, jsPsychPavlovia */
 
 var jsPsych = initJsPsych({
   on_finish: function () {
@@ -197,8 +198,17 @@ function runExperiment() {
     },
   });
 
-  // Fullscreen, viewport gate, and (in debug) the stimulus size check.
+  // Fullscreen, viewport gate, and the stimulus size check.
   timeline = timeline.concat(ScreenCheck.buildNodes(jsPsych));
+
+  // Display calibration. Order matters: brightness first, because the gamma
+  // match is judged by eye and a dimmed screen would bias it.
+  if (CONFIG.calibration.brightness) {
+    timeline = timeline.concat(BrightnessConfirmation.getNodes(jsPsych));
+  }
+  if (CONFIG.calibration.gamma) {
+    timeline = timeline.concat(GammaCalibration.getNodes(jsPsych));
+  }
 
   // Start downloading the stimuli in the BACKGROUND. This does not block:
   // the participant carries on with the screens above while the images

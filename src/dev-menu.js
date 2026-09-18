@@ -42,13 +42,28 @@ var DevMenu = (function () {
       note: 'Fullscreen, viewport gate, panel size readout. No trials, no preload.',
       apply: function () {
         return {
+          calibration: { fullscreen: true, screen_check: true,
+                         brightness: false, gamma: false },
           blocks: { size_check: true, practice: false, main: false, mock: false },
           platform: 'local',
         };
       },
     },
     {
-      id: 'practice',
+      id: 'calibration',
+      label: 'Calibration only',
+      note: 'Brightness confirmation and the 3&times; gamma match. ~3 minutes.',
+      apply: function () {
+        return {
+          calibration: { fullscreen: true, screen_check: true,
+                         brightness: true, gamma: true },
+          blocks: { size_check: false, practice: false, main: false, mock: false },
+          platform: 'local',
+        };
+      },
+    },
+    {
+      id: 'practice', _skipCalib: true,
       label: 'Practice only',
       note: 'The 6 practice trials, with feedback on the first two.',
       apply: function () {
@@ -59,7 +74,7 @@ var DevMenu = (function () {
       },
     },
     {
-      id: 'main_short',
+      id: 'main_short', _skipCalib: true,
       label: 'Main block — first 10 trials',
       note: 'Skips practice. Preloads only the images those trials need.',
       apply: function () {
@@ -71,7 +86,7 @@ var DevMenu = (function () {
       },
     },
     {
-      id: 'catch',
+      id: 'catch', _skipCalib: true,
       label: 'Catch trials',
       note: 'Runs far enough into the main block to reach the first catch trial (~63).',
       apply: function () {
@@ -83,7 +98,7 @@ var DevMenu = (function () {
       },
     },
     {
-      id: 'save_test',
+      id: 'save_test', _skipCalib: true,
       label: 'Upload test — 3 trials',
       note: 'Three trials, then uploads to DataPipe/OSF. Use to check the save path.',
       upload: true,
@@ -95,7 +110,7 @@ var DevMenu = (function () {
       },
     },
     {
-      id: 'mock',
+      id: 'mock', _skipCalib: true,
       label: 'Mock trials (no images)',
       note: 'Six coloured placeholders. Works without any stimulus files.',
       apply: function () {
@@ -110,6 +125,12 @@ var DevMenu = (function () {
   // -----------------------------------------------------------------------
   // Apply overrides onto CONFIG, one level deep.
   // -----------------------------------------------------------------------
+  // Presets other than 'full' and 'calibration' skip the calibration
+  // screens, so a quick test does not mean sitting through the gamma match.
+  function _skipCalibration() {
+    return { calibration: { brightness: false, gamma: false } };
+  }
+
   function _apply(overrides) {
     for (var key in overrides) {
       if (!Object.prototype.hasOwnProperty.call(overrides, key)) continue;
@@ -196,6 +217,7 @@ var DevMenu = (function () {
         var id = this.getAttribute('data-id');
         for (var j = 0; j < PRESETS.length; j++) {
           if (PRESETS[j].id === id) {
+            if (PRESETS[j]._skipCalib) _apply(_skipCalibration());
             _apply(PRESETS[j].apply());
             console.log('[Dev] preset "' + id + '" — platform=' + CONFIG.platform +
                         ', blocks=', CONFIG.blocks, ', limits=', CONFIG.limits);
@@ -210,6 +232,7 @@ var DevMenu = (function () {
     document.getElementById('dev-run-custom').addEventListener('click', function () {
       var n = parseInt(document.getElementById('dev-n').value, 10) || 5;
       var up = document.getElementById('dev-upload').checked;
+      _apply(_skipCalibration());
       _apply({
         blocks: { size_check: false, practice: false, main: true, mock: false },
         limits: { max_trials: n, max_practice: 0 },

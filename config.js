@@ -197,6 +197,16 @@ var CONFIG = {
   calibration: {
     fullscreen:   true,
     screen_check: true,   // soft gate + override on small viewports
+
+    // Both matter more here than in most experiments, because the
+    // manipulations ARE saturation and shadow lifting — see the module
+    // headers in src/calibration/. Neither lets you correct anything;
+    // both give you a covariate.
+    brightness:   true,   // ask for maximum screen brightness
+    gamma:        true,   // 3x luminance match, ~2 minutes
+
+    // 'split_field' (left checkerboard | right grey) or 'centre_surround'
+    gamma_arrangement: 'split_field',
   },
 
   // -----------------------------------------------------------------------

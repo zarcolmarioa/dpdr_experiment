@@ -227,6 +227,36 @@ var Validate = (function () {
       errors.push('Missing from English text: ' + missingEn.join(', '));
     }
 
+    // --- Word lists ------------------------------------------------------
+    // The ids become output column names and are what the analysis joins
+    // on, so the two languages must expose exactly the same set.
+    if (typeof WORDS_EN !== 'undefined' && typeof WORDS_JA !== 'undefined') {
+      var idsEn = WORDS_EN.items.map(function (w) { return w.id; }).sort();
+      var idsJa = WORDS_JA.items.map(function (w) { return w.id; }).sort();
+      if (idsEn.join(',') !== idsJa.join(',')) {
+        errors.push('Word lists differ between languages. EN: ' +
+                    idsEn.join(', ') + ' | JA: ' + idsJa.join(', '));
+      }
+      ['foggy', 'lifeless'].forEach(function (target) {
+        if (idsEn.indexOf(target) === -1) {
+          errors.push('Target word "' + target + '" is missing from the word ' +
+                      'list. It is promoted to a session-level column and ' +
+                      'the between-participant analysis depends on it.');
+        }
+      });
+      var dupes = idsEn.filter(function (x, i) { return i > 0 && x === idsEn[i - 1]; });
+      if (dupes.length) {
+        errors.push('Duplicate word ids: ' + dupes.join(', '));
+      }
+      if (WORDS_EN.items.length < 5) {
+        warnings.push('Only ' + WORDS_EN.items.length + ' words. Fillers are ' +
+                      'what make indiscriminate endorsement detectable.');
+      }
+    } else if (CONFIG.blocks.words) {
+      errors.push('CONFIG.blocks.words is on but the word lists are not ' +
+                  'loaded. Check the text/*/words.js script tags.');
+    }
+
     // --- Summary ---------------------------------------------------------
     var summary = {
       stimulus_set: Loader.stimulusSet(),

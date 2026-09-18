@@ -12,12 +12,13 @@
  * steps 1 and 3. Nothing about the save path changes.
  * ========================================================================= */
 
-/* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, ScreenCheck,
-          BrightnessConfirmation, GammaCalibration,
+/* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, WordsPhase,
+          ScreenCheck, BrightnessConfirmation, GammaCalibration,
           Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
           jsPsychCallFunction, jsPsychFullscreen, jsPsychPreload,
-          jsPsychHtmlButtonResponse, jsPsychPipe, jsPsychPavlovia */
+          jsPsychHtmlButtonResponse, jsPsychSurveyLikert,
+          jsPsychPipe, jsPsychPavlovia */
 
 var jsPsych = initJsPsych({
   on_finish: function () {
@@ -228,6 +229,13 @@ function runExperiment() {
       }
     },
   });
+
+  // Descriptor ratings. These are the PREDICTOR, so they must come before
+  // the image task: rated afterwards, they would be contaminated by what
+  // the participant had just spent fifteen minutes looking at.
+  if (CONFIG.blocks.words) {
+    timeline = timeline.concat(WordsPhase.buildNodes(jsPsych));
+  }
 
   if (CONFIG.blocks.mock) {
     timeline = timeline.concat(MockPhase.buildNodes(jsPsych));

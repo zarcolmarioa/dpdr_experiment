@@ -44,7 +44,22 @@ var DevMenu = (function () {
         return {
           calibration: { fullscreen: true, screen_check: true,
                          brightness: false, gamma: false },
-          blocks: { size_check: true, practice: false, main: false, mock: false },
+          blocks: { size_check: true, words: false, practice: false,
+                    main: false, mock: false },
+          platform: 'local',
+        };
+      },
+    },
+    {
+      id: 'words',
+      label: 'Word ratings only',
+      note: 'The 10 descriptors, 0&ndash;6. No calibration, no images.',
+      apply: function () {
+        return {
+          calibration: { fullscreen: false, screen_check: false,
+                         brightness: false, gamma: false },
+          blocks: { size_check: false, words: true, practice: false,
+                    main: false, mock: false },
           platform: 'local',
         };
       },
@@ -57,7 +72,8 @@ var DevMenu = (function () {
         return {
           calibration: { fullscreen: true, screen_check: true,
                          brightness: true, gamma: true },
-          blocks: { size_check: false, practice: false, main: false, mock: false },
+          blocks: { size_check: false, words: false, practice: false,
+                    main: false, mock: false },
           platform: 'local',
         };
       },
@@ -128,7 +144,8 @@ var DevMenu = (function () {
   // Presets other than 'full' and 'calibration' skip the calibration
   // screens, so a quick test does not mean sitting through the gamma match.
   function _skipCalibration() {
-    return { calibration: { brightness: false, gamma: false } };
+    return { calibration: { brightness: false, gamma: false },
+             blocks: { words: false } };
   }
 
   function _apply(overrides) {

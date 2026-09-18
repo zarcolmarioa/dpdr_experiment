@@ -67,6 +67,27 @@ var Record = (function () {
   }
 
   // -----------------------------------------------------------------------
+  // Promote the two TARGET word ratings to session-level columns, so they
+  // appear on every trial row.
+  //
+  // The per-participant model is fitted on the trial rows, and the
+  // between-participant step then asks whether rating_foggy predicts b_fog
+  // and rating_lifeless predicts b_sat. Having the ratings on every row
+  // means that step needs no join, and removes the chance of joining a
+  // participant to the wrong ratings.
+  //
+  // Only the targets are promoted. The fillers stay on the word_ratings row
+  // where they belong — they exist to detect indiscriminate responding, not
+  // to predict anything.
+  // -----------------------------------------------------------------------
+  function stampWordRatings(jsPsych, ratings) {
+    jsPsych.data.addProperties({
+      rating_foggy:    (ratings.foggy    === undefined) ? null : ratings.foggy,
+      rating_lifeless: (ratings.lifeless === undefined) ? null : ratings.lifeless,
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Map a recorded key onto a side.
   //
   // BOTH sides of the comparison are lowercased, so this keeps working
@@ -177,6 +198,7 @@ var Record = (function () {
     stampSessionStart: stampSessionStart,
     stampSessionEnd:   stampSessionEnd,
     keyToSide:         keyToSide,
+    stampWordRatings:  stampWordRatings,
     pairTrialData:     pairTrialData,
     finishPairTrial:   finishPairTrial,
     finishCatchTrial:  finishCatchTrial,

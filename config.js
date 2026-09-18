@@ -167,6 +167,7 @@ var CONFIG = {
   // -----------------------------------------------------------------------
   blocks: {
     size_check: true,   // the panel-size verification screen
+    words:      true,   // descriptor ratings — MUST run before the images
     practice:   true,
     main:       true,
     mock:       false,  // six placeholder trials; superseded by 'main'

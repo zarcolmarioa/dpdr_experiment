@@ -334,3 +334,41 @@ body.allow-scaling .stim-panel {
    must NOT introduce a light panel — that would change the adaptation
    state the match is made in. */
 .gamma-stage { color: #f0f0f0; text-align: center; }
+
+/* --- Word rating task --------------------------------------------------- */
+
+.word-preamble { max-width: 720px; margin-bottom: 1.2rem; }
+
+.word-item {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #111;
+}
+
+/* jsPsych's survey-likert renders on the page background; give it a panel
+   so the words are readable against the mid-grey. */
+.jspsych-survey-likert-statement,
+.jspsych-survey-likert-opts {
+  background: #f4f4f4;
+  color: #111;
+}
+
+.jspsych-survey-likert-statement {
+  padding: .8rem 1rem .2rem;
+  border-radius: 6px 6px 0 0;
+  margin-top: .6rem;
+}
+
+.jspsych-survey-likert-opts {
+  padding: 0 1rem .8rem;
+  border-radius: 0 0 6px 6px;
+  margin-bottom: .2rem;
+}
+
+.jspsych-survey-likert-opt-label { font-size: .85rem; line-height: 1.25; }
+
+.jspsych-survey-likert-opt-label .anchor {
+  font-size: .72rem;
+  color: #666;
+  font-weight: 400;
+}

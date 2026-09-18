@@ -35,14 +35,25 @@
 
 var WORDS_EN = {
 
+  // Shown on its own screen first, so the rating grid itself needs only a
+  // one-line reminder and the whole grid fits without scrolling.
   instruction:
     '<p>Before the main task, we would like to know how you would describe ' +
     'your experience.</p>' +
-    '<p>Thinking about <b>an episode of depersonalization or ' +
-    'derealization</b>, how well does each of these words describe how your ' +
-    'surroundings <b>looked</b> to you?</p>' +
+    '<p>On the next screen you will see a list of words. Thinking about ' +
+    '<b>an episode of depersonalization or derealization</b>, rate how well ' +
+    'each word describes how your surroundings <b>looked</b> to you.</p>' +
     '<p>Some words will not apply at all. That is expected &mdash; please ' +
     'rate every word anyway.</p>',
+
+  // The one-line header above the grid.
+  question_short:
+    'During an episode, how well does each word describe how your ' +
+    'surroundings <b>looked</b>?',
+
+  button_begin:    'Continue',
+  button_submit:   'Continue',
+  progress:        '{DONE} of {TOTAL} rated',
 
   anchor_low:  'not at all',
   anchor_high: 'exactly',

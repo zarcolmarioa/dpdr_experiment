@@ -337,97 +337,147 @@ body.allow-scaling .stim-panel {
 
 /* --- Word rating task --------------------------------------------------- */
 
-/* Layout goals, in order:
-   1. All ten words visible at once, or nearly so. The ratings are more
-      consistent when the words can be compared against each other; that
-      only works if they are on screen together.
-   2. The row should READ as a scale. jsPsych renders bare radio buttons in
-      a wide row, which does not look like a continuum. A track drawn
-      through them supplies that without changing the control — radios keep
-      the empty initial state that a slider lacks, which matters because
-      most fillers should legitimately be rated 0. */
+/* CONSTRAINT: the question, all ten rows and the button must fit in the
+   viewport with NO scrolling, on a laptop as small as 1366 x 768. In
+   fullscreen that is ~720 px of usable height. Budget:
 
-.word-preamble {
-  max-width: 760px;
-  margin: 0 auto 1rem;
-  padding: 1rem 1.4rem;
-  font-size: .92rem;
+       question   ~34 px
+       header row ~30 px
+       10 rows    ~42 px each = 420 px
+       footer     ~44 px
+       padding    ~40 px
+       -------------------
+       total      ~570 px
+
+   Anything added here has to come out of that budget. The instructions
+   live on their own screen for exactly this reason.
+
+   The 0-6 legend is printed ONCE, in the header row. Repeating it under
+   every word — which is what jsPsych's survey-likert does — costs ~25 px
+   ten times over and is what made the earlier version scroll. */
+
+.word-intro { max-width: 680px; }
+
+.wr-wrap {
+  width: min(860px, 94vw);
+  margin: 0 auto;
+  padding: .6rem 0;
 }
-.word-preamble p { margin: .45rem 0; }
 
-/* One panel per word: the label and its scale share a single box, instead
-   of the two stacked boxes jsPsych produces by default. */
-.jspsych-survey-likert-statement,
-.jspsych-survey-likert-opts {
+.wr-question {
+  color: #f2f2f2;
+  font-size: .98rem;
+  text-align: center;
+  margin-bottom: .55rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,.35);
+}
+
+.wr-grid {
   background: #f4f4f4;
+  border-radius: 8px;
+  padding: .35rem .9rem .5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,.22);
+}
+
+/* Two columns: the word, then the scale. Fixed ratio so every row lines up
+   and the chosen positions form a readable vertical pattern down the page —
+   which is the point of keeping them on one screen. */
+.wr-row {
+  display: grid;
+  grid-template-columns: 34% 66%;
+  align-items: center;
+  border-top: 1px solid #e4e4e4;
+}
+.wr-row:first-child { border-top: none; }
+
+.wr-word {
+  font-size: .95rem;
+  font-weight: 600;
   color: #111;
-  margin: 0;
+  text-align: right;
+  padding-right: 1.1rem;
+  line-height: 1.2;
 }
 
-.jspsych-survey-likert-statement {
-  padding: .5rem 1rem 0;
-  border-radius: 6px 6px 0 0;
-  margin-top: .4rem;
-  text-align: left;
-  font-weight: 400;
-}
-
-.jspsych-survey-likert-opts {
-  padding: .1rem 1rem .5rem;
-  border-radius: 0 0 6px 6px;
+.wr-scale {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   position: relative;
+  padding: .5rem 0;
 }
 
-/* The scale track. Sits behind the buttons, inset so it runs between the
-   first and last rather than past them. */
-.jspsych-survey-likert-opts::before {
+/* The scale track. Inset by half a cell (1/14 of the width) so the line
+   starts at the first radio's centre and stops at the last one's, rather
+   than running past them. */
+.wr-scale::before {
   content: '';
   position: absolute;
-  left: 12%;
-  right: 12%;
-  /* Vertical alignment with the radio centres. This is the one value that
-     can only be set by eye — if the line sits above or below the buttons,
-     adjust it here. */
-  top: var(--track-offset, 0.62rem);
+  left: calc(100% / 14);
+  right: calc(100% / 14);
+  top: 50%;
   height: 2px;
-  background: #ccc;
+  margin-top: -1px;
+  background: #d2d2d2;
   z-index: 0;
 }
+.wr-scale-head::before { display: none; }
 
-.jspsych-survey-likert-opts li { position: relative; z-index: 1; }
+.wr-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
 
-.jspsych-survey-likert-opts input[type="radio"] {
-  width: 15px;
-  height: 15px;
+.wr-cell input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
   accent-color: #4a6fa5;
   background: #f4f4f4;
   cursor: pointer;
 }
 
-.word-item {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111;
-}
+/* Header row: numbers, with the endpoint wording under the 0 and the 6.
+   Because this appears once, the anchors cost height once rather than
+   ten times. */
+.wr-header { border-top: none; }
+.wr-scale-head { padding: .15rem 0 .3rem; }
 
-.jspsych-survey-likert-opt-label {
-  font-size: .8rem;
-  line-height: 1.15;
-  color: #444;
-}
+.wr-num { font-size: .82rem; color: #555; line-height: 1.1; }
 
-/* Endpoint wording, under the 0 and the 6 only. Absolutely positioned so
-   it does not add height to every row. */
-.jspsych-survey-likert-opt-label .anchor {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
+.wr-anchor {
   font-size: .68rem;
-  color: #777;
-  font-weight: 400;
+  color: #888;
+  white-space: nowrap;
+  line-height: 1.1;
   margin-top: .05rem;
 }
 
-/* Keep the whole set on one page where the viewport allows. */
-.jspsych-content { padding-top: .5rem; padding-bottom: .5rem; }
+/* Faint tint once a row is answered, so an unanswered row stands out
+   without needing an error message. */
+.wr-row.wr-done .wr-word { color: #4a6fa5; }
+
+.wr-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-top: .6rem;
+}
+
+.wr-progress {
+  color: #e8e8e8;
+  font-size: .85rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,.35);
+}
+
+/* Short viewports: shave the row padding rather than allowing a scrollbar. */
+@media (max-height: 800px) {
+  .wr-scale   { padding: .34rem 0; }
+  .wr-word    { font-size: .88rem; }
+  .wr-question{ font-size: .9rem; margin-bottom: .4rem; }
+  .wr-cell input[type="radio"] { width: 14px; height: 14px; }
+}

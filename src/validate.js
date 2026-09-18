@@ -229,6 +229,7 @@ var Validate = (function () {
 
     // --- Summary ---------------------------------------------------------
     var summary = {
+      stimulus_set: Loader.stimulusSet(),
       trials:       trials.length,
       analysed:     trials.filter(function (t) { return t.analysed; }).length,
       images:       preload.length,

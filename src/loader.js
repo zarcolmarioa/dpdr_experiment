@@ -1,9 +1,13 @@
 /* =========================================================================
  * loader.js — fetches the data files and exposes the active text set.
  *
- * Reads:
- *   data/trial_list.json    143 trials, built by build_trials.py
- *   data/preload.json       the 227 unique image paths those trials use
+ * Reads, for the active stimulus set:
+ *   data/sets/<set>/trial_list.json   143 trials, built by build_trials.py
+ *   data/sets/<set>/preload.json      the unique image paths those use
+ *
+ * The active set comes from CONFIG.data.set, or from ?set=<name> in the
+ * URL, which overrides it. Both are resolved here, so nothing else in the
+ * code needs to know where the files live.
  *
  * Nothing about the design is hard-coded in the experiment. Trial order,
  * pairing, counterbalancing and the predictor values all come from
@@ -31,6 +35,35 @@ var Loader = (function () {
   };
 
   // -----------------------------------------------------------------------
+  // Active stimulus set.
+  //
+  // A name that is not in CONFIG.data.available_sets is rejected HERE,
+  // before any fetch, so a typo in a participant's link produces a clear
+  // message naming the valid sets rather than a 404 in front of them.
+  // -----------------------------------------------------------------------
+  function _activeSet() {
+    var override = new URLSearchParams(window.location.search).get('set');
+    var name = override || CONFIG.data.set;
+    var known = CONFIG.data.available_sets || [];
+
+    if (known.indexOf(name) === -1) {
+      throw new Error(
+        'Unknown stimulus set "' + name + '"' +
+        (override ? ' (from ?set= in the URL)' : ' (from CONFIG.data.set)') +
+        '. Available sets: ' + known.join(', ') + '.'
+      );
+    }
+    return name;
+  }
+
+  function stimulusSet() { return _activeSet(); }
+
+  // Folder holding the active set's files, e.g. 'data/sets/lum_p05/'.
+  function _setDir() {
+    return CONFIG.data.sets_dir + _activeSet() + '/';
+  }
+
+  // -----------------------------------------------------------------------
   // Active text set, chosen by CONFIG.language.
   // ?lang=en or ?lang=ja in the URL overrides it, for testing.
   // -----------------------------------------------------------------------
@@ -50,14 +83,14 @@ var Loader = (function () {
 
   // -----------------------------------------------------------------------
   // Turn a path from trial_list.json ('stimuli/xxx.png') into a URL the
-  // browser can request ('data/stimuli/xxx.png').
+  // browser can request ('data/sets/<set>/stimuli/xxx.png').
   //
   // Paths are case-sensitive on GitHub Pages as well as on Linux, so a
   // filename that works locally works there too — and a mismatch fails in
   // both places rather than only in production.
   // -----------------------------------------------------------------------
   function imageURL(relativePath) {
-    return CONFIG.data.stimulus_base + relativePath;
+    return _setDir() + relativePath;
   }
 
   // -----------------------------------------------------------------------
@@ -89,15 +122,23 @@ var Loader = (function () {
   // Load everything. Returns a promise resolving to the parsed data.
   // -----------------------------------------------------------------------
   function loadAll() {
+    var dir;
+    try {
+      dir = _setDir();                 // throws on an unknown set name
+    } catch (e) {
+      return Promise.reject(e);
+    }
+
     return Promise.all([
-      _fetchJSON(CONFIG.data.trial_list),
-      _fetchJSON(CONFIG.data.preload),
+      _fetchJSON(dir + 'trial_list.json'),
+      _fetchJSON(dir + 'preload.json'),
     ]).then(function (results) {
       _data.trials  = results[0];
       _data.preload = results[1];
 
       if (CONFIG.debug) {
-        console.log('[Loader] ' + _data.trials.length + ' trials, ' +
+        console.log('[Loader] set "' + _activeSet() + '": ' +
+                    _data.trials.length + ' trials, ' +
                     _data.preload.length + ' images, language = ' +
                     _activeLanguage());
       }
@@ -132,6 +173,7 @@ var Loader = (function () {
     trialsOfType: trialsOfType,
     mainTrials:   mainTrials,
     imageURL:     imageURL,
+    stimulusSet:  stimulusSet,
     text:         text,
     language:     language,
   };

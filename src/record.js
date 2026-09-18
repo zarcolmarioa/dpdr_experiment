@@ -38,7 +38,11 @@ var Record = (function () {
       experiment_name:      CONFIG.experiment.name,
       experiment_version:   CONFIG.experiment.version,
       platform:             CONFIG.platform,
-      language:             CONFIG.language || 'en',
+      language:             Loader.language(),
+
+      // Which stimulus set this session saw. Essential when more than one
+      // set is in use: without it the pooled data cannot be split by arm.
+      stimulus_set:         Loader.stimulusSet(),
       session_start_time:   new Date().toISOString(),
 
       // Display context — needed to interpret sessions run on small screens,
@@ -153,12 +157,20 @@ var Record = (function () {
   }
 
   // -----------------------------------------------------------------------
-  // Filename for the uploaded file: <participant_id>_<timestamp>.csv
+  // Filename for the uploaded file:
+  //     <participant_id>_<stimulus_set>_<timestamp>.csv
+  //
+  // The set appears in the name as well as in the data. That redundancy is
+  // deliberate: the OSF component can be sorted by arm without opening
+  // anything, and if a file is ever truncated or fails to parse, the one
+  // piece of metadata that could not be recovered is still readable.
+  //
   // Colons and dots are stripped so the name is safe on every filesystem.
   // -----------------------------------------------------------------------
   function sessionFilename(participantId) {
     var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    return participantId + '_' + stamp + '.csv';
+    var set   = Loader.stimulusSet();
+    return participantId + '_' + set + '_' + stamp + '.csv';
   }
 
   return {

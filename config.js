@@ -131,15 +131,34 @@ var CONFIG = {
   language: 'en',
 
   // -----------------------------------------------------------------------
-  // Data files and where the stimulus images live.
+  // Stimulus sets.
   //
-  // Paths inside trial_list.json look like 'stimuli/xxx.png'. stimulus_base
-  // is prefixed to them, so the images are served from data/stimuli/.
+  // Each set lives in its own folder under sets_dir and holds all three
+  // things it needs:
+  //
+  //     data/sets/<set>/trial_list.json
+  //     data/sets/<set>/preload.json
+  //     data/sets/<set>/stimuli/*.png
+  //
+  // They are kept together because a trial list and its images are a
+  // matched pair — a list referencing the other set's filenames would fail
+  // at preload. Keeping them in one folder makes that mismatch impossible.
+  //
+  // Set names describe the feature used to select the stimuli, so the
+  // distinction stays legible later.
+  //
+  // `set` is the default. ?set=<name> in the URL overrides it, which lets
+  // sets be assigned per participant when the invitation links are
+  // generated, with no redeploy between participants.
+  //
+  // The active set is stamped onto every output row as `stimulus_set` and
+  // into the uploaded filename. If both sets are piloted, that column is
+  // what makes the data interpretable.
   // -----------------------------------------------------------------------
   data: {
-    trial_list:     'data/trial_list.json',
-    preload:        'data/preload.json',
-    stimulus_base:  'data/',
+    set:            'lum_p05',
+    available_sets: ['lum_p05', 'contrast_local'],
+    sets_dir:       'data/sets/',
   },
 
   // -----------------------------------------------------------------------

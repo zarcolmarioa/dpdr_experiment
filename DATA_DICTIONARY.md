@@ -68,8 +68,7 @@ column is how you find each step's rows.
 
 | # | step | `block` | rows | what it saves |
 |---|---|---|---|---|
-| 1 | Participant ID | `participant_id` | 1 (more if a typed ID was rejected) | how the ID arrived. Session-level identity columns are stamped here — see §5 |
-| 1b | Contact details (optional) | `contact` | 1, or 0 if name and email are both switched off | only **whether** a name / email was given. The values themselves are never in this file — see §12 |
+| 1 | Participant details (ID + optional name and email, one screen) | `participant_id` | 1 | the ID, how it arrived, and only **whether** a name / email was given. Name and email themselves are never in this file — see §12 |
 | 2 | Fullscreen | `fullscreen` | 1 | — |
 | 3 | Viewport check | *(empty)* + `screen_warning` | 1 + 0 or 1 | display measurements in fullscreen (§5). The warning row appears **only** if the screen was too small |
 | 4 | Size check | `size_check` | 1 | `panel_rendered_w`, `panel_rendered_h` — the measured panel size |
@@ -123,10 +122,10 @@ from any analysed row with `.iloc[0]`.
 | column | example | notes |
 |---|---|---|
 | `participant_id` | `R_9rJJWk01c767jE8` | links to the CDS-29 record. Case-sensitive |
-| `is_test` | `False` | `True` when the superuser ID `Z_21121989` was used |
+| `is_test` | `False` | `True` when a test ID was used: `Z_21121989` (yours) or `CHAIN_2026` (colleagues) |
 | `is_dev` | `False` | `True` when the session started from `dev.html`, or ran with a trial limit |
-| `id_source` | `url` / `typed` | on the `participant_id` row only |
-| `id_entered`, `id_valid` | | on the `participant_id` row only, when the ID was typed |
+| `id_source` | `url` / `typed` | on the `participant_id` row only. `url` = came from the link unchanged |
+| `id_entered`, `id_valid` | | on the `participant_id` row only |
 | `contact_name_given`, `contact_email_given` | `True` / `False` | whether the participant filled in the optional field. Empty if that field was switched off |
 | `contact_saved` | `True` / `False` / empty | whether the separate contact file uploaded. Empty if nothing was given |
 
@@ -449,7 +448,7 @@ participant.
 
 ## 12. The separate contact file
 
-If a participant gives a name or email on the optional contact screen,
+If a participant gives a name or email on the first screen,
 those values are uploaded **straight away**, as a separate one-row CSV, to
 a separate DataPipe experiment (`T2jZJusQxUGv`) and OSF component
 (`qt9x8`). They are removed from the response data before anything else
@@ -470,6 +469,8 @@ contact_<participant_id>_<timestamp>.csv
 It is uploaded at the contact screen rather than at the end, so contact
 details survive even if the participant abandons the session.
 
-No file is written if both fields were left blank, or in local/dev mode.
+No file is written if both fields were left blank. It **is** written in
+local and dev runs, so the upload can be tested quickly; those rows carry
+`is_test` / `is_dev` = `true` and should be deleted or ignored.
 Restrict access to component `qt9x8`, and delete it when your ethics
 approval requires, independently of the response data.

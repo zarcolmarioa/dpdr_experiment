@@ -119,40 +119,34 @@ var TEXT_EN = {
     gamma_confirm_button: 'Confirm match',
   },
 
-  // --- Participant ID -----------------------------------------------------
-  id: {
-    confirm_title: 'Before we begin',
-    confirm_body:  '<p>Your participant ID is:</p>',
-    confirm_hint:  'If this is correct, press <b>SPACE</b> to continue.<br>' +
-                   'If not, please close this page and contact the researcher.',
-
-    missing_title: 'Missing participant ID',
-    missing_body:  '<p>This link is incomplete. Please use the full link from ' +
-                   'your invitation email, or contact the researcher.</p>',
-
-    entry_title:   'Participant ID',
-    entry_body:    '<p>Please enter the participant ID from your invitation ' +
-                   'email.</p>',
-    entry_hint:    'It looks like <code>R_</code> followed by 15 letters and ' +
-                   'numbers. Capital and small letters matter.',
-    entry_label:   'Participant ID',
-
-    retry_title:   'That ID was not recognised',
-    retry_body:    '<p>Please check your invitation email and try again.</p>',
-    retry_hint:    'Press <b>SPACE</b> to re-enter it.',
-  },
-
-  // --- Contact details (optional) ------------------------------------------
+  // --- Participant details: ONE screen with ID, name and email ------------
   // Only the fields switched on in CONFIG.participant are shown.
-  contact: {
-    title:       'Contact details (optional)',
-    body:        '<p>If you are happy for us to contact you about this study, ' +
-                 'you can leave your name and email address below.</p>' +
-                 '<p>This is <b>optional</b>. Your contact details are stored ' +
-                 'separately from your answers.</p>',
-    name_label:  'Name',
-    email_label: 'Email address',
-    button:      'Continue',
+  id: {
+    title:          'Before we begin',
+    body:           '<p>Please enter your participant ID from your invitation ' +
+                    'email. If you opened this page from the link in the ' +
+                    'email, it is already filled in.</p>',
+    id_label:       'Participant ID',
+    id_hint:        '<code>R_</code> followed by 15 letters and numbers. ' +
+                    'Capital and small letters matter.',
+    // Plain text: shown by the browser in a small bubble if the ID is wrong.
+    invalid:        'This ID was not recognised. Please check your invitation ' +
+                    'email — capital and small letters matter.',
+    optional_note:  '<p>Your <b>name</b> and <b>email address</b> are ' +
+                    '<b>optional</b>. If you give them, they are stored ' +
+                    'separately from your answers and used only to contact ' +
+                    'you about this study.</p>',
+    name_label:     'Name (optional)',
+    email_label:    'Email address (optional)',
+    button:         'Continue',
+
+    missing_title:  'Missing participant ID',
+    missing_body:   '<p>This link is incomplete. Please use the full link from ' +
+                    'your invitation email, or contact the researcher.</p>',
+
+    retry_title:    'That ID was not recognised',
+    retry_body:     '<p>Please check your invitation email and try again.</p>',
+    retry_hint:     'Press <b>SPACE</b> to re-enter it.',
   },
 
   // --- End of session ------------------------------------------------------

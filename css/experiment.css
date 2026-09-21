@@ -519,3 +519,10 @@ body.allow-scaling .stim-panel {
 
 .end-card { max-width: 600px; text-align: left; }
 .end-card a { color: #4a6fa5; }
+
+.contact-fields .field-hint {
+  display: block;
+  font-size: .78rem;
+  color: #777;
+  margin-top: .25rem;
+}

@@ -50,6 +50,9 @@ var CONFIG = {
   // IDs are CASE-SENSITIVE: R_4EWNe48BIB50mVI and R_4ewne48bib50mvi are
   // different identifiers. Whitespace is stripped; case is not touched.
   //
+  // All three are asked on ONE screen at the start. If the invitation link
+  // carries ?pid=, the ID field is filled in already.
+  //
   // The three fields can each be switched off independently:
   //
   //   collect_id     REQUIRED when on. The ID is what links a session to the
@@ -66,11 +69,23 @@ var CONFIG = {
   // so the response data on OSF stays pseudonymised, and the file that
   // identifies people can be restricted or deleted on its own. The
   // response data only records whether each was given (true/false).
-  // If both are off, the contact screen is skipped entirely.
+  // If all three are off, the screen is skipped entirely.
+  //
+  // The contact file is uploaded whenever a name or email is given, on
+  // every platform including local/dev runs, so it can be tested quickly.
+  // Test sessions are flagged is_test / is_dev inside that file too.
   // -----------------------------------------------------------------------
   participant: {
     id_pattern:        '^R_[A-Za-z0-9]{15}$',
-    superuser_id:      'Z_21121989',
+
+    // Test IDs. Accepted in place of a real ID, and every row of a session
+    // using one is flagged is_test = true. Add more as needed.
+    //   Z_21121989  — your own testing
+    //   CHAIN_2026  — for colleagues. Several people may share it; their
+    //                 files are still separate (the filename has a
+    //                 timestamp), and the optional name field tells them apart.
+    superuser_ids:     ['Z_21121989', 'CHAIN_2026'],
+
     allow_manual_id:   true,   // false = URL parameter only
     collect_id:        true,
     collect_name:      true,
@@ -100,7 +115,7 @@ var CONFIG = {
   // CHANGE THIS before recruiting. validate.js warns while it still holds
   // the placeholder.
   // -----------------------------------------------------------------------
-  researcher_contact: 'mariozarco@chain.hokudai.ac.jp',
+  researcher_contact: 'CHANGE_ME@example.com',
 
   // -----------------------------------------------------------------------
   // Response keys.

@@ -234,11 +234,6 @@ var DevMenu = (function () {
         var id = this.getAttribute('data-id');
         for (var j = 0; j < PRESETS.length; j++) {
           if (PRESETS[j].id === id) {
-            // Everything except the full session skips the optional contact
-            // screen, so a quick test does not ask for a name and email.
-            if (id !== 'full') {
-              _apply({ participant: { collect_name: false, collect_email: false } });
-            }
             if (PRESETS[j]._skipCalib) _apply(_skipCalibration());
             _apply(PRESETS[j].apply());
             console.log('[Dev] preset "' + id + '" — platform=' + CONFIG.platform +
@@ -254,7 +249,6 @@ var DevMenu = (function () {
     document.getElementById('dev-run-custom').addEventListener('click', function () {
       var n = parseInt(document.getElementById('dev-n').value, 10) || 5;
       var up = document.getElementById('dev-upload').checked;
-      _apply({ participant: { collect_name: false, collect_email: false } });
       _apply(_skipCalibration());
       _apply({
         blocks: { size_check: false, practice: false, main: true, mock: false },

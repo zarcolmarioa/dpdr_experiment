@@ -1,41 +1,52 @@
 /* =========================================================================
- * participant-id.js — establishes who is running the session.
+ * participant-id.js — who is running the session.
  *
- * Order of preference:
- *   1. ?pid=R_... in the URL  (mail-merged invitation link)
- *   2. typed entry            (the same ID is printed in the email)
+ * ONE SCREEN asks for everything at the start:
  *
- * The ID links the session back to the participant's existing CDS-29 score.
- * A session without a valid ID cannot be linked and is therefore unusable,
- * so there is no "skip" option — only a "contact the researcher" exit.
+ *   Participant ID   REQUIRED. Pre-filled from ?pid= in the invitation link.
+ *   Name             optional
+ *   Email            optional
  *
- * After the ID, an optional CONTACT screen asks for name and email (each
- * field switchable in CONFIG.participant; both optional for the
- * participant). These are handled with care:
+ * Each field can be switched off in CONFIG.participant. If all three are
+ * off, the screen is skipped.
  *
+ * THE ID links the session to the participant's CDS-29 score, so a session
+ * cannot continue without a valid one. It is checked as it is typed: an
+ * invalid ID blocks the Continue button with a message in the participant's
+ * language. Test IDs (CONFIG.participant.superuser_ids) are accepted too,
+ * and flag every row is_test = true.
+ *
+ * NAME AND EMAIL are handled with care:
  *   - they are REMOVED from the jsPsych data as soon as the screen ends, so
  *     they never appear in the response CSV uploaded to OSF;
- *   - they are uploaded straight away as a separate small CSV
- *     (participant_id, name, email, ...) to a SEPARATE DataPipe experiment
- *     (CONFIG.contact_datapipe), so the identifying file can be restricted
- *     or deleted independently of the responses;
+ *   - they are uploaded straight away as a separate one-row CSV to a
+ *     SEPARATE DataPipe experiment (CONFIG.contact_datapipe), so the file
+ *     that identifies people can be restricted or deleted on its own;
  *   - the response data records only whether each was given, and whether
  *     the separate upload succeeded (contact_saved).
- *
- * Uploading immediately, rather than at the end, means contact details
- * survive even if the participant abandons the session partway.
- *
- * All wording comes from Loader.text().id and .contact, so both languages
- * are covered.
+ * Uploading at the start means contact details survive even if the
+ * participant abandons the session partway. The upload happens on every
+ * platform, including local and dev runs, so it can be tested quickly —
+ * those files are flagged is_test / is_dev.
  * ========================================================================= */
 
 var ParticipantID = (function () {
 
-  var _id         = null;
-  var _superuser  = false;
+  var _id           = null;
+  var _superuser    = false;
+  var _contactSaved = null;   // true / false once the upload returns
 
-  function get()         { return _id; }
-  function isSuperuser() { return _superuser; }
+  function get()          { return _id; }
+  function isSuperuser()  { return _superuser; }
+  function contactSaved() { return _contactSaved; }
+
+  // Accepts both the current list and the older single-ID setting.
+  function _superusers() {
+    var P = CONFIG.participant || {};
+    var list = (P.superuser_ids || []).slice();
+    if (P.superuser_id) list.push(P.superuser_id);
+    return list;
+  }
 
   // -----------------------------------------------------------------------
   // Read ?pid= from the URL. Entirely client-side: the query string is never
@@ -62,15 +73,15 @@ var ParticipantID = (function () {
 
   function isValid(candidate) {
     if (!candidate) return false;
-    if (candidate === CONFIG.participant.superuser_id) return true;
+    if (_superusers().indexOf(candidate) !== -1) return true;
     return new RegExp(CONFIG.participant.id_pattern).test(candidate);
   }
 
   function accept(candidate) {
     _id = candidate;
-    _superuser = (candidate === CONFIG.participant.superuser_id);
+    _superuser = (_superusers().indexOf(candidate) !== -1);
     if (_superuser) {
-      console.log('[ID] Superuser session — rows flagged is_test = true.');
+      console.log('[ID] Test ID ' + candidate + ' — rows flagged is_test = true.');
     }
     return _id;
   }
@@ -88,104 +99,19 @@ var ParticipantID = (function () {
     return out;
   }
 
-  // -----------------------------------------------------------------------
-  // Timeline nodes for establishing the ID.
-  //
-  // If the URL carried a valid ID, one confirmation screen is shown.
-  // Otherwise a typed-entry screen loops until a valid ID is given.
-  // -----------------------------------------------------------------------
+  function _escapeHTML(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function _card(title, body, hint) {
     return '<div class="card"><h2>' + title + '</h2>' + (body || '') +
            (hint ? '<p class="hint">' + hint + '</p>' : '') + '</div>';
   }
 
-  function buildNodes(jsPsych) {
-    var T = Loader.text().id;
-    var nodes = [];
-
-    // --- ID collection switched off -------------------------------------
-    if (!CONFIG.participant.collect_id) {
-      accept(_anonymousId());
-      console.warn('[ID] collect_id is off — anonymous ID ' + _id +
-                   '. This session cannot be linked to a CDS-29 score.');
-      return nodes.concat(buildContactNodes(jsPsych));
-    }
-
-    var urlId = fromURL();
-
-    // --- ID arrived in the link: confirm it ------------------------------
-    if (urlId && isValid(urlId)) {
-      accept(urlId);
-      nodes.push({
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: _card(T.confirm_title,
-                        T.confirm_body + '<p class="id-echo">' + urlId + '</p>',
-                        T.confirm_hint),
-        choices: [' '],
-        data: { block: 'participant_id', id_source: 'url' },
-      });
-      return nodes.concat(buildContactNodes(jsPsych));
-    }
-
-    // --- No usable ID and typing is not allowed: stop here ---------------
-    if (!CONFIG.participant.allow_manual_id) {
-      nodes.push({
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: _card(T.missing_title, T.missing_body),
-        choices: 'NO_KEYS',
-        data: { block: 'participant_id', id_source: 'missing' },
-      });
-      return nodes;
-    }
-
-    // --- Typed entry, repeated until valid --------------------------------
-    var entry = {
-      type: jsPsychSurveyText,
-      preamble: _card(T.entry_title, T.entry_body, T.entry_hint),
-      questions: [{ prompt: T.entry_label, name: 'pid', required: true, columns: 30 }],
-      button_label: Loader.text().calibration.button_continue,
-      data: { block: 'participant_id', id_source: 'typed' },
-      on_finish: function (data) {
-        var candidate = normalise(data.response.pid);
-        data.id_valid = isValid(candidate);
-        data.id_entered = candidate;
-        if (data.id_valid) accept(candidate);
-      },
-    };
-
-    // Shown only when the entry above was rejected.
-    var retry = {
-      timeline: [{
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: _card(T.retry_title, T.retry_body, T.retry_hint),
-        choices: [' '],
-        data: { block: 'participant_id_retry' },
-      }],
-      conditional_function: function () {
-        return _id === null;   // nothing accepted yet
-      },
-    };
-
-    nodes.push({
-      timeline: [entry, retry],
-      loop_function: function () {
-        return _id === null;   // keep looping until an ID is accepted
-      },
-    });
-
-    return nodes.concat(buildContactNodes(jsPsych));
-  }
-
   // =======================================================================
-  // CONTACT DETAILS (optional name and email)
+  // The separate contact upload
   // =======================================================================
-
-  var _contactSaved = null;   // true / false once the upload returns
-
-  function _escapeHTML(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 
   // One CSV field: quoted if it contains a comma, quote or line break, so a
   // name like 'Zarco, Mario' or one with quotes cannot break the file.
@@ -198,16 +124,11 @@ var ParticipantID = (function () {
   // DataPipe reports success as {message: 'Success'}. The plugin marks a
   // NETWORK failure as success too (it returns the Error object, which has
   // no .error field), so success is judged from the message itself.
-  function _pipeSucceeded(result) {
+  function pipeSucceeded(result) {
     return !!(result && result.message === 'Success' && !result.error);
   }
 
   function _uploadContact(name, email) {
-    if (CONFIG.platform === 'local') {
-      console.log('[Contact] local mode — not uploaded.', { name: name, email: email });
-      _contactSaved = null;
-      return;
-    }
     if (typeof jsPsychPipe === 'undefined' || !jsPsychPipe.saveData) {
       console.error('[Contact] DataPipe plugin not loaded — contact not saved.');
       _contactSaved = false;
@@ -226,7 +147,7 @@ var ParticipantID = (function () {
 
     jsPsychPipe.saveData(CONFIG.contact_datapipe.experiment_id, filename, csv)
       .then(function (result) {
-        _contactSaved = _pipeSucceeded(result);
+        _contactSaved = pipeSucceeded(result);
         console.log('[Contact] upload ' + (_contactSaved ? 'succeeded' : 'FAILED'), result);
       })
       .catch(function (err) {
@@ -235,13 +156,53 @@ var ParticipantID = (function () {
       });
   }
 
-  function buildContactNodes(jsPsych) {
-    var askName  = !!CONFIG.participant.collect_name;
-    var askEmail = !!CONFIG.participant.collect_email;
-    if (!askName && !askEmail) return [];
+  // =======================================================================
+  // The screen
+  // =======================================================================
 
-    var T = Loader.text().contact;
+  function buildNodes(jsPsych) {
+    var T        = Loader.text().id;
+    var P        = CONFIG.participant;
+    var askId    = !!P.collect_id;
+    var askName  = !!P.collect_name;
+    var askEmail = !!P.collect_email;
+    var urlId    = fromURL();
+    var urlValid = !!(urlId && isValid(urlId));
+
+    // --- ID switched off: anonymous ID ------------------------------------
+    if (!askId) {
+      accept(_anonymousId());
+      console.warn('[ID] collect_id is off — anonymous ID ' + _id +
+                   '. This session cannot be linked to a CDS-29 score.');
+    }
+
+    // --- Nothing to ask ----------------------------------------------------
+    if (!askId && !askName && !askEmail) return [];
+
+    // --- No usable ID in the link and typing is not allowed: stop ---------
+    if (askId && !urlValid && !P.allow_manual_id) {
+      return [{
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: _card(T.missing_title, T.missing_body),
+        choices: 'NO_KEYS',
+        data: { block: 'participant_id', id_source: 'missing' },
+      }];
+    }
+
+    // --- The form ----------------------------------------------------------
     var fields = '<div class="contact-fields">';
+    if (askId) {
+      // Read-only when the link supplied a valid ID and typing is not
+      // allowed; otherwise editable, pre-filled from the link if present.
+      var locked = urlValid && !P.allow_manual_id;
+      fields +=
+        '<label>' + T.id_label +
+        '<input type="text" name="pid" id="pid-input" required ' +
+        'autocomplete="off" autocapitalize="off" spellcheck="false" ' +
+        (locked ? 'readonly ' : '') +
+        'value="' + (urlId ? _escapeHTML(urlId) : '') + '">' +
+        '<span class="field-hint">' + T.id_hint + '</span></label>';
+    }
     if (askName) {
       fields += '<label>' + T.name_label +
                 '<input type="text" name="contact_name" autocomplete="name" ' +
@@ -249,57 +210,96 @@ var ParticipantID = (function () {
     }
     if (askEmail) {
       // type="email": the browser rejects a malformed address on submit,
-      // but an EMPTY field is allowed, since the field is optional.
+      // but an EMPTY field is allowed, since it is optional.
       fields += '<label>' + T.email_label +
                 '<input type="email" name="contact_email" autocomplete="email" ' +
                 'maxlength="200"></label>';
     }
     fields += '</div>';
 
-    return [{
+    var formNode = {
       type: jsPsychSurveyHtmlForm,
       preamble: '<div class="card contact-card"><h2>' + T.title + '</h2>' +
-                T.body + '</div>',
+                (askId ? T.body : '') +
+                ((askName || askEmail) ? T.optional_note : '') + '</div>',
       html: fields,
       button_label: T.button,
-      data: { block: 'contact' },
+      autofocus: askId ? 'pid-input' : '',
+      data: { block: 'participant_id' },
+
+      // Check the ID as it is typed. An invalid ID makes the browser block
+      // Continue and show T.invalid next to the field, in the participant's
+      // language — so a typo is caught before the session starts.
+      on_load: function () {
+        var input = document.getElementById('pid-input');
+        if (!input) return;
+        function check() {
+          input.setCustomValidity(isValid(normalise(input.value)) ? '' : T.invalid);
+        }
+        input.addEventListener('input', check);
+        check();
+      },
+
       on_finish: function (data) {
         var r = data.response || {};
+
+        if (askId) {
+          var candidate = normalise(r.pid || '');
+          data.id_entered = candidate;
+          data.id_valid   = isValid(candidate);
+          data.id_source  = (urlId && candidate === urlId) ? 'url' : 'typed';
+          if (data.id_valid) accept(candidate);
+        }
+
         var name  = askName  ? String(r.contact_name  || '').trim() : '';
         var email = askEmail ? String(r.contact_email || '').trim() : '';
 
-        // REMOVE the identifying values from the response data, so they can
-        // never reach the OSF response file.
+        // REMOVE everything typed from the response data, so name and email
+        // can never reach the OSF response file. (The ID is kept above as
+        // id_entered.)
         data.response = null;
         data.contact_name_given  = askName  ? (name.length  > 0) : null;
         data.contact_email_given = askEmail ? (email.length > 0) : null;
-
-        if (name || email) {
-          _uploadContact(name, email);
-        } else {
-          _contactSaved = null;   // nothing to save
-        }
 
         jsPsych.data.addProperties({
           contact_name_given:  data.contact_name_given,
           contact_email_given: data.contact_email_given,
         });
+
+        // Upload name/email only once the ID is accepted, so the contact
+        // file is always linked to a real ID.
+        if (_id && (name || email)) {
+          _uploadContact(name, email);
+        }
       },
+    };
+
+    // Safety net: the in-browser check above should make this unreachable,
+    // but if an invalid ID ever gets through, say so and ask again.
+    var retry = {
+      timeline: [{
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: _card(T.retry_title, T.retry_body, T.retry_hint),
+        choices: [' '],
+        data: { block: 'participant_id_retry' },
+      }],
+      conditional_function: function () { return _id === null; },
+    };
+
+    return [{
+      timeline: [formNode, retry],
+      loop_function: function () { return _id === null; },
     }];
   }
 
-  // Whether the separate contact upload succeeded: true, false, or null
-  // (nothing given / local mode / still in flight).
-  function contactSaved() { return _contactSaved; }
-
   return {
-    get:          get,
-    isSuperuser:  isSuperuser,
-    contactSaved: contactSaved,
-    pipeSucceeded: _pipeSucceeded,
-    isValid:     isValid,
-    normalise:   normalise,
-    fromURL:     fromURL,
-    buildNodes:  buildNodes,
+    get:           get,
+    isSuperuser:   isSuperuser,
+    isValid:       isValid,
+    normalise:     normalise,
+    fromURL:       fromURL,
+    contactSaved:  contactSaved,
+    pipeSucceeded: pipeSucceeded,
+    buildNodes:    buildNodes,
   };
 })();

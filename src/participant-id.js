@@ -35,10 +35,17 @@ var ParticipantID = (function () {
   var _id           = null;
   var _superuser    = false;
   var _contactSaved = null;   // true / false once the upload returns
+  var _contactReply = '';     // DataPipe's raw reply, shown in debug mode
 
   function get()          { return _id; }
   function isSuperuser()  { return _superuser; }
   function contactSaved() { return _contactSaved; }
+  function contactReply() { return _contactReply; }
+
+  function _describe(x) {
+    if (x instanceof Error) return x.name + ': ' + x.message;
+    try { return JSON.stringify(x); } catch (e) { return String(x); }
+  }
 
   // Accepts both the current list and the older single-ID setting.
   function _superusers() {
@@ -148,10 +155,12 @@ var ParticipantID = (function () {
     jsPsychPipe.saveData(CONFIG.contact_datapipe.experiment_id, filename, csv)
       .then(function (result) {
         _contactSaved = pipeSucceeded(result);
+        _contactReply = _describe(result);
         console.log('[Contact] upload ' + (_contactSaved ? 'succeeded' : 'FAILED'), result);
       })
       .catch(function (err) {
         _contactSaved = false;
+        _contactReply = _describe(err);
         console.error('[Contact] upload failed', err);
       });
   }
@@ -299,6 +308,7 @@ var ParticipantID = (function () {
     normalise:     normalise,
     fromURL:       fromURL,
     contactSaved:  contactSaved,
+    contactReply:  contactReply,
     pipeSucceeded: pipeSucceeded,
     buildNodes:    buildNodes,
   };

@@ -176,8 +176,12 @@ function _buildCompletionNode() {
         html += '<p>Participant: <code>' +
                 (ParticipantID.get() || 'none') + '</code>' +
                 (ParticipantID.isSuperuser() ? ' (test session)' : '') + '</p>';
-        html += '<p>Contact upload: <code>' +
-                String(ParticipantID.contactSaved()) + '</code></p>';
+        html += '<p>Contact upload (to ' + CONFIG.contact_datapipe.experiment_id +
+                '): <code>' + String(ParticipantID.contactSaved()) + '</code></p>';
+        if (ParticipantID.contactReply()) {
+          html += '<pre>' + ParticipantID.contactReply()
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
+        }
 
         if (CONFIG.platform === 'local') {
           html += '<p>Local mode — CSV downloaded, nothing uploaded.</p>';

@@ -175,6 +175,33 @@ var TEXT_EN = {
                   'emailed it, you may close this page.',
   },
 
+  // --- Grid block -------------------------------------------------------
+  // Shown after the pair trials, only for sets that have a grid. Same
+  // framing rules as above: the change is acknowledged, never named.
+  grid: {
+    title:        'One more task',
+    instructions:
+      '<p>On the next four screens you will see several scenes, each shown ' +
+      'at different levels of a visual change. Each <b>column</b> shows one ' +
+      'level.</p>' +
+      '<p>Choose the column that looks most like how your surroundings ' +
+      'looked to you during an episode. Click anywhere in a column to ' +
+      'choose it.</p>' +
+      '<p>If none of the columns resembles it, choose <b>None of these</b>.</p>' +
+      '<p>You can change your choice before pressing Continue. There is no ' +
+      'time limit.</p>',
+    button_begin:    'Begin',
+    question:        'Which column looks most like how your surroundings looked to you during an episode?',
+    none:            'None of these',
+    button_continue: 'Continue',
+    progress:        'Screen {DONE} of {TOTAL}',
+    // Only used if CONFIG.blocks.grid_none_text is switched on.
+    none_text_prompt:
+      'You chose &ldquo;None of these&rdquo; at least once. In your own words, ' +
+      'how did your surroundings look different? (optional)',
+    none_text_button: 'Continue',
+  },
+
   // --- Breaks -----------------------------------------------------------
   brk: {
     title: 'Short break',

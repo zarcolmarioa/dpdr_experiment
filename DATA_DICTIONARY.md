@@ -79,7 +79,15 @@ column is how you find each step's rows.
 | 9 | Image download | `preload` | 1 | `success`, `failed_images` |
 | 10 | Practice | `practice_intro`, `pairs`, `practice_feedback`, `practice_end`, `fixation`, `blank` | 1 + 6 + 2 + 1 + 6 + 6 | practice responses. `analysed = False` |
 | 11 | Main block | `pairs`, `fixation`, `blank`, `catch_lockout`, `break` | 137 + 131 + 131 + 6 + 3 | **the data** (§7) |
-| 12 | Save | *(empty)* | 1 | end-of-session stamps (§5) |
+| 12 | Grid download | `grid_preload` | 1 | `success`, `failed_images` — **`contrast_local` only** |
+| 13 | Grid instructions | `grid_instructions` | 1 | — |
+| 14 | Grid screens | `grid` | 4 | one row per screen (§7b) — **`contrast_local` only** |
+| 15 | Grid free text | `grid_none_text` | 0 | switched off (`CONFIG.blocks.grid_none_text`). If switched on: 1 row, only when "None of these" was chosen at least once |
+| 16 | Save | *(empty)* | 1 | end-of-session stamps (§5) |
+
+Steps 12–15 exist only for stimulus sets that have a grid
+(`CONFIG.data.grid_sets`, currently `contrast_local`). A `lum_p05` session
+goes straight from the main block to the save.
 
 Rows with an empty `block` are internal steps: recording session
 properties, starting the background image download, and the gamma screens.
@@ -319,6 +327,57 @@ trials later. Choosing the same *image* therefore means pressing the
 
 ---
 
+## 7b. The grid block (`block == 'grid'`)
+
+Four rows, one per screen, in the order shown. Each screen shows three
+scenes (rows) at every level of one change (columns). The participant
+clicked one column, or "None of these". Screens and column direction are
+fixed by `grid_trials.json` — nothing is randomised.
+
+| column | meaning |
+|---|---|
+| `grid_screen` | screen number from `grid_trials.json` (1–4) |
+| `grid_screen_position` | order in which it was shown (same as `grid_screen` unless the file is reordered) |
+| `grid_feature` | `haze` or `colour` |
+| `grid_column_order` | `forward` (unedited on the left) or `reversed` (unedited on the right) |
+| `grid_n_columns` | 6 for haze, 5 for colour |
+| `grid_choice` | `column` or `none` |
+| `grid_choice_column` | the **display position** clicked, 1 = leftmost. Empty for `none`. Do not analyse this directly: on reversed screens position 1 is the strongest level |
+| `grid_choice_level_index` | **the level chosen**: 0 = unedited, higher = stronger change. Same meaning on forward and reversed screens. Use this |
+| `grid_choice_level_label` | readable label, e.g. `haze 0.37`, `chroma 0.60`, `unedited` |
+| `grid_choice_chroma`, `grid_choice_haze` | the image parameters of the chosen column |
+| `grid_scenes` | the three scene ids, top to bottom, separated by `;` |
+| `grid_n_changes` | how many times the selection was changed before Continue (0 = first click kept) |
+| `grid_cell_px` | measured width of one image, in CSS pixels |
+| `grid_viewport` | window size when the screen was answered |
+| `rt` | ms from screen shown to Continue |
+| `analysed` | always `False` — keeps these rows out of a pair-trial filter on `analysed` |
+
+**Cell size is not fixed.** Unlike the pair panels (always 512 px), six
+columns of 512 px fit no laptop, so the cell is computed from the window:
+about 146 px at 1120×680, 187 px at 1366×768, and capped at 240 px on large
+screens. It is the same on all four screens of a session. Treat
+`grid_cell_px` as a covariate; no exclusion threshold is set.
+
+**Each feature is shown twice**, once forward and once reversed. Comparing
+`grid_choice_level_index` between the two screens of the same feature
+shows whether the choice follows the level or the position on screen.
+
+`grid_none_text` (block `grid_none_text`) holds the free-text answer when
+that question is switched on. It is off, so the column does not appear.
+
+```python
+g = d[d.block == 'grid']
+g[['grid_screen', 'grid_feature', 'grid_column_order',
+   'grid_choice', 'grid_choice_level_index', 'grid_choice_level_label']]
+
+# Position vs level: same feature, forward vs reversed
+g.pivot_table(index='participant_id', columns=['grid_feature', 'grid_column_order'],
+              values='grid_choice_level_index')
+```
+
+---
+
 ## 8. Getting to an analysable table
 
 ```python
@@ -428,6 +487,8 @@ For a complete, usable session:
 | `images_fit` | `True` |
 | `failed_images` (on the `preload` row) | `[]` |
 | `stimulus_set` | `lum_p05` or `contrast_local` |
+| rows where `block == 'grid'` (`contrast_local` only) | 4, each with `grid_choice` filled |
+| `failed_images` on the `grid_preload` row | `[]` |
 
 ---
 
@@ -440,7 +501,8 @@ These are written by jsPsych or its plugins rather than by the experiment:
 HTML), `value`, `success` and `timeout` (download step), `failed_audio`,
 `failed_video`.
 
-`failed_images` is the exception. Glance at it on the `preload` row:
+`failed_images` is the exception. Glance at it on the `preload` row (and on
+`grid_preload` for `contrast_local`):
 anything other than `[]` means some images did not load for that
 participant.
 

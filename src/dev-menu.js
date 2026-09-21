@@ -45,7 +45,7 @@ var DevMenu = (function () {
           calibration: { fullscreen: true, screen_check: true,
                          brightness: false, gamma: false },
           blocks: { size_check: true, words: false, practice: false,
-                    main: false, mock: false },
+                    main: false, mock: false, grid: false },
           platform: 'local',
         };
       },
@@ -59,7 +59,7 @@ var DevMenu = (function () {
           calibration: { fullscreen: false, screen_check: false,
                          brightness: false, gamma: false },
           blocks: { size_check: false, words: true, practice: false,
-                    main: false, mock: false },
+                    main: false, mock: false, grid: false },
           platform: 'local',
         };
       },
@@ -73,7 +73,7 @@ var DevMenu = (function () {
           calibration: { fullscreen: true, screen_check: true,
                          brightness: true, gamma: true },
           blocks: { size_check: false, words: false, practice: false,
-                    main: false, mock: false },
+                    main: false, mock: false, grid: false },
           platform: 'local',
         };
       },
@@ -84,7 +84,7 @@ var DevMenu = (function () {
       note: 'The 6 practice trials, with feedback on the first two.',
       apply: function () {
         return {
-          blocks: { size_check: false, practice: true, main: false, mock: false },
+          blocks: { size_check: false, practice: true, main: false, mock: false, grid: false },
           platform: 'local',
         };
       },
@@ -95,7 +95,7 @@ var DevMenu = (function () {
       note: 'Skips practice. Preloads only the images those trials need.',
       apply: function () {
         return {
-          blocks: { size_check: false, practice: false, main: true, mock: false },
+          blocks: { size_check: false, practice: false, main: true, mock: false, grid: false },
           limits: { max_trials: 10, max_practice: 0 },
           platform: 'local',
         };
@@ -107,8 +107,23 @@ var DevMenu = (function () {
       note: 'Runs far enough into the main block to reach the first catch trial (~63).',
       apply: function () {
         return {
-          blocks: { size_check: false, practice: false, main: true, mock: false },
+          blocks: { size_check: false, practice: false, main: true, mock: false, grid: false },
           limits: { max_trials: 70, max_practice: 0 },
+          platform: 'local',
+        };
+      },
+    },
+    {
+      id: 'grid', _skipCalib: true,
+      label: 'Grid block only',
+      note: 'Fullscreen, then the 4 grid screens. contrast_local only &mdash; ' +
+            'other sets have no grid and go straight to the end.',
+      apply: function () {
+        return {
+          calibration: { fullscreen: true, screen_check: true,
+                         brightness: false, gamma: false },
+          blocks: { size_check: false, words: false, practice: false,
+                    main: false, mock: false, grid: true },
           platform: 'local',
         };
       },
@@ -120,7 +135,7 @@ var DevMenu = (function () {
       upload: true,
       apply: function () {
         return {
-          blocks: { size_check: false, practice: false, main: true, mock: false },
+          blocks: { size_check: false, practice: false, main: true, mock: false, grid: false },
           limits: { max_trials: 3, max_practice: 0 },
         };
       },
@@ -131,7 +146,7 @@ var DevMenu = (function () {
       note: 'Six coloured placeholders. Works without any stimulus files.',
       apply: function () {
         return {
-          blocks: { size_check: false, practice: false, main: false, mock: true },
+          blocks: { size_check: false, practice: false, main: false, mock: true, grid: false },
           platform: 'local',
         };
       },
@@ -185,6 +200,7 @@ var DevMenu = (function () {
     html += '<tr><th>trials / analysed</th><td>' + summary.trials + ' / ' + summary.analysed + '</td></tr>';
     html += '<tr><th>images</th><td>' + summary.images + '</td></tr>';
     html += '<tr><th>scenes</th><td>' + summary.scenes + '</td></tr>';
+    html += '<tr><th>grid screens</th><td>' + (summary.grid_screens || 'none for this set') + '</td></tr>';
     html += '<tr><th>language</th><td><code>' + _esc(summary.language) + '</code></td></tr>';
     html += '<tr><th>platform</th><td><code>' + _esc(CONFIG.platform) + '</code></td></tr>';
     html += '</table></div>';
@@ -251,7 +267,7 @@ var DevMenu = (function () {
       var up = document.getElementById('dev-upload').checked;
       _apply(_skipCalibration());
       _apply({
-        blocks: { size_check: false, practice: false, main: true, mock: false },
+        blocks: { size_check: false, practice: false, main: true, mock: false, grid: false },
         limits: { max_trials: n, max_practice: 0 },
       });
       if (!up) CONFIG.platform = 'local';

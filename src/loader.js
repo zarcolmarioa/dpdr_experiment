@@ -4,6 +4,8 @@
  * Reads, for the active stimulus set:
  *   data/sets/<set>/trial_list.json   143 trials, built by build_trials.py
  *   data/sets/<set>/preload.json      the unique image paths those use
+ *   data/sets/<set>/grid/...          grid block, only for sets listed in
+ *                                     CONFIG.data.grid_sets
  *
  * The active set comes from CONFIG.data.set, or from ?set=<name> in the
  * URL, which overrides it. Both are resolved here, so nothing else in the
@@ -32,6 +34,8 @@ var Loader = (function () {
   var _data = {
     trials:  null,
     preload: null,
+    grid:        null,   // null = this set has no grid block
+    gridPreload: null,
   };
 
   // -----------------------------------------------------------------------
@@ -94,6 +98,26 @@ var Loader = (function () {
   }
 
   // -----------------------------------------------------------------------
+  // Grid block files live in their own sub-folder of the set:
+  //   data/sets/<set>/grid/{grid_trials.json, preload.json, stimuli/}
+  // Paths inside grid_trials.json are relative to that folder.
+  //
+  // Only sets named in CONFIG.data.grid_sets are expected to have one. For
+  // the others nothing is fetched and the block is skipped.
+  // -----------------------------------------------------------------------
+  function hasGrid() {
+    return (CONFIG.data.grid_sets || []).indexOf(_activeSet()) !== -1;
+  }
+
+  function _gridDir() {
+    return _setDir() + 'grid/';
+  }
+
+  function gridImageURL(relativePath) {
+    return _gridDir() + relativePath;
+  }
+
+  // -----------------------------------------------------------------------
   // Fetch one JSON file, with a useful error if it is missing.
   // -----------------------------------------------------------------------
   function _fetchJSON(path) {
@@ -129,18 +153,25 @@ var Loader = (function () {
       return Promise.reject(e);
     }
 
+    var gridOn = hasGrid();
+
     return Promise.all([
       _fetchJSON(dir + 'trial_list.json'),
       _fetchJSON(dir + 'preload.json'),
+      gridOn ? _fetchJSON(_gridDir() + 'grid_trials.json') : null,
+      gridOn ? _fetchJSON(_gridDir() + 'preload.json')     : null,
     ]).then(function (results) {
-      _data.trials  = results[0];
-      _data.preload = results[1];
+      _data.trials      = results[0];
+      _data.preload     = results[1];
+      _data.grid        = results[2];
+      _data.gridPreload = results[3];
 
       if (CONFIG.debug) {
         console.log('[Loader] set "' + _activeSet() + '": ' +
                     _data.trials.length + ' trials, ' +
-                    _data.preload.length + ' images, language = ' +
-                    _activeLanguage());
+                    _data.preload.length + ' images, grid = ' +
+                    (_data.grid ? _data.grid.length + ' screens' : 'none') +
+                    ', language = ' + _activeLanguage());
       }
       return _data;
     });
@@ -155,6 +186,12 @@ var Loader = (function () {
   // Absolute URLs for every image, for the preload plugin.
   function preloadURLs() {
     return _data.preload.map(imageURL);
+  }
+
+  function grid()        { return _data.grid; }
+  function gridPreload() { return _data.gridPreload; }
+  function gridPreloadURLs() {
+    return (_data.gridPreload || []).map(gridImageURL);
   }
 
   // Trials of one type, or everything except practice.
@@ -173,6 +210,11 @@ var Loader = (function () {
     trialsOfType: trialsOfType,
     mainTrials:   mainTrials,
     imageURL:     imageURL,
+    hasGrid:         hasGrid,
+    grid:            grid,
+    gridPreload:     gridPreload,
+    gridPreloadURLs: gridPreloadURLs,
+    gridImageURL:    gridImageURL,
     stimulusSet:  stimulusSet,
     text:         text,
     language:     language,

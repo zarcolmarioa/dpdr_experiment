@@ -217,6 +217,11 @@ var CONFIG = {
     set:            'lum_p05',
     available_sets: ['lum_p05', 'contrast_local'],
     sets_dir:       'data/sets/',
+
+    // Sets that have a grid block, in data/sets/<set>/grid/. For any set
+    // not listed the grid block is skipped. To add one later, put its
+    // grid_trials.json, preload.json and stimuli/ in place and add it here.
+    grid_sets:      ['contrast_local'],
   },
 
   // -----------------------------------------------------------------------
@@ -229,6 +234,23 @@ var CONFIG = {
     practice:   true,
     main:       true,
     mock:       false,  // six placeholder trials; superseded by 'main'
+    grid:       true,   // grid block after the pairs — only runs for sets
+                        // listed in data.grid_sets
+    grid_none_text: false,  // free-text question after the grid if "None
+                            // of these" was chosen. Built, switched OFF.
+  },
+
+  // -----------------------------------------------------------------------
+  // Grid block layout. The cell size is computed from the viewport (six
+  // columns of 512 px fit no laptop), capped at max_cell_px, and recorded
+  // on every grid row as grid_cell_px.
+  // -----------------------------------------------------------------------
+  grid: {
+    max_cell_px: 240,
+    min_cell_px: 100,
+    row_gap_px:  6,     // between scenes within a column
+    col_gap_px:  22,    // between columns — wider, so columns read as units
+    chrome_px:   190,   // vertical space kept for question and buttons
   },
 
   // -----------------------------------------------------------------------

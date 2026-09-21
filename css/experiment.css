@@ -526,3 +526,80 @@ body.allow-scaling .stim-panel {
   color: #777;
   margin-top: .25rem;
 }
+
+/* --- Grid block --------------------------------------------------------- */
+
+/* Rows are scenes, columns are levels. The whole column is the clickable
+   unit, so the selection outline goes round the column, not one image.
+   Cell size is set inline by grid.js from the viewport. */
+.grid-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.grid-question { margin-bottom: .9rem; }
+
+.grid-cols {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.grid-col {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  padding: 4px;
+  border: 3px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.grid-col:hover { border-color: rgba(255,255,255,.35); }
+
+.grid-col.selected {
+  border-color: #f0f0f0;
+  box-shadow: 0 0 18px rgba(255,255,255,.45);
+}
+
+.grid-cell {
+  display: block;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,.25);
+  pointer-events: none;   /* clicks land on the column */
+}
+
+.grid-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.grid-none {
+  padding: .5rem 1.4rem;
+  font: inherit;
+  color: #f0f0f0;
+  background: transparent;
+  border: 2px solid rgba(255,255,255,.55);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.grid-none:hover { border-color: #f0f0f0; }
+
+.grid-none.selected {
+  background: #f0f0f0;
+  color: #333;
+  border-color: #f0f0f0;
+}
+
+.grid-foot .calib-btn { margin-top: 0; }
+
+.grid-progress {
+  font-size: .85rem;
+  color: rgba(255,255,255,.7);
+}

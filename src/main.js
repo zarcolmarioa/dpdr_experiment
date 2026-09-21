@@ -12,7 +12,7 @@
  * steps 1 and 3. Nothing about the save path changes.
  * ========================================================================= */
 
-/* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, WordsPhase,
+/* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, WordsPhase, GridPhase,
           ScreenCheck, BrightnessConfirmation, GammaCalibration,
           Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
@@ -277,10 +277,19 @@ function runExperiment() {
     type: jsPsychCallFunction,
     func: function () {
       try {
-        jsPsych.pluginAPI.preloadImages(Loader.preloadURLs());
+        // Pair images only if a pair block runs; grid images only if the
+        // grid runs. Order matters: the pairs are needed first.
+        var urls = [];
+        if (CONFIG.blocks.practice || CONFIG.blocks.main) {
+          urls = urls.concat(Loader.preloadURLs());
+        }
+        if (CONFIG.blocks.grid && Loader.hasGrid()) {
+          urls = urls.concat(Loader.gridPreloadURLs());
+        }
+        if (urls.length) jsPsych.pluginAPI.preloadImages(urls);
         if (CONFIG.debug) {
           console.log('[Preload] background download started (' +
-                      Loader.preloadURLs().length + ' images).');
+                      urls.length + ' images).');
         }
       } catch (e) {
         console.warn('[Preload] background start failed; the gate will ' +
@@ -300,6 +309,12 @@ function runExperiment() {
     timeline = timeline.concat(MockPhase.buildNodes(jsPsych));
   } else {
     timeline = timeline.concat(PairsPhase.buildNodes(jsPsych));
+  }
+
+  // Grid block, after all pair trials. Returns nothing for sets without a
+  // grid (see CONFIG.data.grid_sets).
+  if (CONFIG.blocks.grid) {
+    timeline = timeline.concat(GridPhase.buildNodes(jsPsych));
   }
   timeline = timeline.concat(_buildSaveNodes());
   timeline.push(_buildCompletionNode());

@@ -280,6 +280,64 @@ var Validate = (function () {
                     'screen — set it before recruiting.');
     }
 
+    // --- Grid block ------------------------------------------------------
+    // Only checked for sets listed in CONFIG.data.grid_sets; the loader has
+    // already failed loudly if their files are missing.
+    var grid = data.grid, gridPre = data.gridPreload;
+    if (grid) {
+      if (!Array.isArray(grid) || !grid.length) {
+        errors.push('grid_trials.json is empty or not an array.');
+      } else if (!Array.isArray(gridPre) || !gridPre.length) {
+        errors.push('grid/preload.json is empty or not an array.');
+      } else {
+        var gridPreSet = _pathSet(gridPre), gridUsed = {}, gridMissing = {};
+        if (grid.length !== 4) {
+          warnings.push('Grid has ' + grid.length + ' screens; 4 expected.');
+        }
+        grid.forEach(function (sc) {
+          var tag = 'Grid screen ' + sc.screen;
+          if (!Array.isArray(sc.columns) || !Array.isArray(sc.rows)) {
+            errors.push(tag + ' has no columns or rows.');
+            return;
+          }
+          if (sc.n_columns !== sc.columns.length) {
+            errors.push(tag + ': n_columns is ' + sc.n_columns + ' but ' +
+                        sc.columns.length + ' columns are listed.');
+          }
+          if (sc.columns.length > 6) {
+            warnings.push(tag + ' has ' + sc.columns.length + ' columns; ' +
+                          'cells will be small on a laptop.');
+          }
+          sc.rows.forEach(function (r) {
+            if (!Array.isArray(r.images) || r.images.length !== sc.columns.length) {
+              errors.push(tag + ', row ' + r.row + ': ' +
+                          (r.images ? r.images.length : 0) + ' images for ' +
+                          sc.columns.length + ' columns.');
+              return;
+            }
+            r.images.forEach(function (p) {
+              gridUsed[p] = true;
+              if (!gridPreSet[p]) gridMissing[p] = true;
+            });
+          });
+          sc.columns.forEach(function (c) {
+            ['column', 'level_label', 'level_index', 'chroma', 'haze'].forEach(function (f) {
+              if (c[f] === undefined) errors.push(tag + ': a column is missing "' + f + '".');
+            });
+          });
+        });
+        var gm = Object.keys(gridMissing);
+        if (gm.length) {
+          errors.push(gm.length + ' grid image(s) are not in grid/preload.json, ' +
+                      'e.g. ' + gm.slice(0, 3).join(', '));
+        }
+        var gu = gridPre.filter(function (p) { return !gridUsed[p]; });
+        if (gu.length) {
+          warnings.push(gu.length + ' image(s) in grid/preload.json are never shown.');
+        }
+      }
+    }
+
     // --- Summary ---------------------------------------------------------
     var summary = {
       stimulus_set: Loader.stimulusSet(),
@@ -291,6 +349,7 @@ var Validate = (function () {
                     }, {})).length,
       counts:       counts,
       language:     Loader.language(),
+      grid_screens: grid ? grid.length : 0,
     };
 
     return _result(errors, warnings, summary);

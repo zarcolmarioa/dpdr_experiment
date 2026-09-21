@@ -119,6 +119,68 @@ var TEXT_EN = {
     gamma_confirm_button: 'Confirm match',
   },
 
+  // --- Participant ID -----------------------------------------------------
+  id: {
+    confirm_title: 'Before we begin',
+    confirm_body:  '<p>Your participant ID is:</p>',
+    confirm_hint:  'If this is correct, press <b>SPACE</b> to continue.<br>' +
+                   'If not, please close this page and contact the researcher.',
+
+    missing_title: 'Missing participant ID',
+    missing_body:  '<p>This link is incomplete. Please use the full link from ' +
+                   'your invitation email, or contact the researcher.</p>',
+
+    entry_title:   'Participant ID',
+    entry_body:    '<p>Please enter the participant ID from your invitation ' +
+                   'email.</p>',
+    entry_hint:    'It looks like <code>R_</code> followed by 15 letters and ' +
+                   'numbers. Capital and small letters matter.',
+    entry_label:   'Participant ID',
+
+    retry_title:   'That ID was not recognised',
+    retry_body:    '<p>Please check your invitation email and try again.</p>',
+    retry_hint:    'Press <b>SPACE</b> to re-enter it.',
+  },
+
+  // --- Contact details (optional) ------------------------------------------
+  // Only the fields switched on in CONFIG.participant are shown.
+  contact: {
+    title:       'Contact details (optional)',
+    body:        '<p>If you are happy for us to contact you about this study, ' +
+                 'you can leave your name and email address below.</p>' +
+                 '<p>This is <b>optional</b>. Your contact details are stored ' +
+                 'separately from your answers.</p>',
+    name_label:  'Name',
+    email_label: 'Email address',
+    button:      'Continue',
+  },
+
+  // --- End of session ------------------------------------------------------
+  // {CONTACT} is replaced with CONFIG.researcher_contact.
+  end: {
+    // Shown by the DataPipe plugin while the file uploads.
+    saving:       '<div class="card"><h2>Saving your responses</h2>' +
+                  '<p>This usually takes a few seconds.</p>' +
+                  '<p><b>Please do not close this page.</b></p></div>',
+
+    title:        'Thank you',
+    body:         '<p>Your responses have been saved.</p>' +
+                  '<p>Thank you very much for taking part in this study. ' +
+                  'You may now close this page.</p>',
+    contact_line: 'If you have any questions about the study, please contact ' +
+                  '{CONTACT}.',
+
+    fail_title:   'Your responses could not be saved automatically',
+    fail_body:    '<p>This is usually caused by a network problem.</p>' +
+                  '<p>Please download your responses with the button below and ' +
+                  'send the file by email to {CONTACT}.</p>' +
+                  '<p><b>Please do not close this page until the file has ' +
+                  'downloaded.</b></p>',
+    fail_button:  'Download my responses',
+    fail_done:    'The file has been downloaded. Thank you — once you have ' +
+                  'emailed it, you may close this page.',
+  },
+
   // --- Breaks -----------------------------------------------------------
   brk: {
     title: 'Short break',

@@ -262,6 +262,24 @@ var Validate = (function () {
                   'loaded. Check the text/*/words.js script tags.');
     }
 
+    // --- Participant fields and contact ---------------------------------
+    var P = CONFIG.participant || {};
+    if (!P.collect_id) {
+      warnings.push('collect_id is OFF. Sessions get an anonymous ID and ' +
+                    'cannot be linked to a CDS-29 score.');
+    }
+    if ((P.collect_name || P.collect_email) &&
+        !(CONFIG.contact_datapipe && CONFIG.contact_datapipe.experiment_id)) {
+      errors.push('Name/email collection is on but CONFIG.contact_datapipe.' +
+                  'experiment_id is empty — contact details would be lost.');
+    }
+    if (!CONFIG.researcher_contact ||
+        /CHANGE_ME/.test(CONFIG.researcher_contact)) {
+      warnings.push('CONFIG.researcher_contact is still the placeholder. ' +
+                    'It appears on the final screen and the upload-failure ' +
+                    'screen — set it before recruiting.');
+    }
+
     // --- Summary ---------------------------------------------------------
     var summary = {
       stimulus_set: Loader.stimulusSet(),

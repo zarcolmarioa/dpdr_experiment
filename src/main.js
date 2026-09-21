@@ -17,7 +17,7 @@
           Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
           jsPsychCallFunction, jsPsychFullscreen, jsPsychPreload,
-          jsPsychHtmlButtonResponse, jsPsychSurveyLikert,
+          jsPsychHtmlButtonResponse, jsPsychSurveyLikert, jsPsychSurveyHtmlForm,
           jsPsychPipe, jsPsychPavlovia */
 
 var jsPsych = initJsPsych({
@@ -71,6 +71,9 @@ function _buildSaveNodes() {
       Record.stampSessionEnd(jsPsych, {
         viewport_width_end:  window.innerWidth,
         viewport_height_end: window.innerHeight,
+        // Whether the separate name/email upload succeeded. null when
+        // nothing was given, in local mode, or if it had not returned yet.
+        contact_saved:       ParticipantID.contactSaved(),
       });
     },
   });
@@ -84,11 +87,16 @@ function _buildSaveNodes() {
         return Record.sessionFilename(ParticipantID.get() || 'NOID');
       },
       data_string:   function () { return jsPsych.data.get().csv(); },
+      // Shown while the file uploads. Replaces the plugin's English default
+      // so the Japanese version is covered, and says plainly not to close
+      // the page — closing it now is how a session gets lost.
+      wait_message:  Loader.text().end.saving,
       on_finish: function (data) {
-        // The exact response shape depends on the plugin version, so the
-        // whole thing is captured rather than one assumed field.
+        // Do NOT trust data.success: the plugin reports a network failure
+        // as success (it returns the Error object, which has no .error
+        // field). Success is judged from DataPipe's own reply instead.
         UPLOAD_RESULT.attempted = true;
-        UPLOAD_RESULT.success   = (data.success === true);
+        UPLOAD_RESULT.success   = ParticipantID.pipeSucceeded(data.result);
         try {
           UPLOAD_RESULT.detail = JSON.stringify(data);
         } catch (e) {
@@ -115,16 +123,51 @@ function _buildSaveNodes() {
 }
 
 // ---------------------------------------------------------------------------
-// Completion screen. In debug mode it reports the upload outcome, which is
-// the whole point of the smoke test: DataPipe failures are otherwise silent.
+// Completion screen.
+//
+// Three outcomes, all in the participant's language:
+//
+//   saved     — thanks, confirmation the responses were saved, contact line
+//   failed    — the upload did not go through: a button downloads the CSV so
+//               the participant can email it, rather than the session being
+//               lost silently
+//   local     — dev/local mode: same as saved (the CSV was downloaded)
+//
+// In debug mode a box underneath reports the upload details. Set
+// CONFIG.debug = false before recruiting and participants never see it.
 // ---------------------------------------------------------------------------
+function _contactHTML() {
+  var c = CONFIG.researcher_contact || '';
+  if (/^[^@\s]+@[^@\s]+$/.test(c)) {
+    return '<a href="mailto:' + c + '">' + c + '</a>';
+  }
+  return c;
+}
+
 function _buildCompletionNode() {
   return {
     type: jsPsychHtmlKeyboardResponse,
     choices: 'NO_KEYS',
     stimulus: function () {
-      var html = '<div class="card"><h2>Thank you</h2>' +
-                 '<p>The session is complete. You may close this page.</p>';
+      var E = Loader.text().end;
+      var contact = _contactHTML();
+      var failed = (CONFIG.platform !== 'local') &&
+                   !(UPLOAD_RESULT.attempted && UPLOAD_RESULT.success);
+      var html;
+
+      if (failed) {
+        html = '<div class="card end-card"><h2>' + E.fail_title + '</h2>' +
+               E.fail_body.replace(/\{CONTACT\}/g, contact) +
+               '<p><button id="end-download" class="calib-btn">' +
+               E.fail_button + '</button></p>' +
+               '<p id="end-download-done" class="hint" style="display:none">' +
+               E.fail_done + '</p>';
+      } else {
+        html = '<div class="card end-card"><h2>' + E.title + '</h2>' +
+               E.body +
+               '<p class="hint">' +
+               E.contact_line.replace(/\{CONTACT\}/g, contact) + '</p>';
+      }
 
       if (CONFIG.debug) {
         html += '<hr><div class="debug-box">';
@@ -133,6 +176,8 @@ function _buildCompletionNode() {
         html += '<p>Participant: <code>' +
                 (ParticipantID.get() || 'none') + '</code>' +
                 (ParticipantID.isSuperuser() ? ' (test session)' : '') + '</p>';
+        html += '<p>Contact upload: <code>' +
+                String(ParticipantID.contactSaved()) + '</code></p>';
 
         if (CONFIG.platform === 'local') {
           html += '<p>Local mode — CSV downloaded, nothing uploaded.</p>';
@@ -141,7 +186,7 @@ function _buildCompletionNode() {
         } else if (UPLOAD_RESULT.success) {
           html += '<p class="ok">Upload reported SUCCESS.</p>';
         } else {
-          html += '<p class="fail">Upload reported FAILURE. Check that ' +
+          html += '<p class="fail">Upload FAILED. Check that ' +
                   '&ldquo;Enable data collection&rdquo; is switched on for ' +
                   'experiment <code>' + CONFIG.datapipe.experiment_id +
                   '</code> on the DataPipe dashboard.</p>';
@@ -153,6 +198,16 @@ function _buildCompletionNode() {
       }
 
       return html + '</div>';
+    },
+    on_load: function () {
+      var btn = document.getElementById('end-download');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var filename = Record.sessionFilename(ParticipantID.get() || 'NOID');
+        jsPsych.data.get().localSave('csv', filename);
+        var done = document.getElementById('end-download-done');
+        if (done) done.style.display = 'block';
+      });
     },
   };
 }

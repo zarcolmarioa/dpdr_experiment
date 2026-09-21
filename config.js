@@ -49,15 +49,58 @@ var CONFIG = {
   //
   // IDs are CASE-SENSITIVE: R_4EWNe48BIB50mVI and R_4ewne48bib50mvi are
   // different identifiers. Whitespace is stripped; case is not touched.
+  //
+  // The three fields can each be switched off independently:
+  //
+  //   collect_id     REQUIRED when on. The ID is what links a session to the
+  //                  participant's CDS-29 score. If switched off, sessions
+  //                  get an anonymous ID ('ANON_' + random) and CANNOT be
+  //                  linked to anything — validate.js warns about this.
+  //
+  //   collect_name   OPTIONAL for the participant (they may leave it blank).
+  //   collect_email  OPTIONAL for the participant.
+  //
+  // Name and email are NEVER written to the response data. They are
+  // uploaded as a separate small file (ID + name + email) to a separate
+  // DataPipe experiment and OSF component — see `contact_datapipe` below —
+  // so the response data on OSF stays pseudonymised, and the file that
+  // identifies people can be restricted or deleted on its own. The
+  // response data only records whether each was given (true/false).
+  // If both are off, the contact screen is skipped entirely.
   // -----------------------------------------------------------------------
   participant: {
     id_pattern:        '^R_[A-Za-z0-9]{15}$',
     superuser_id:      'Z_21121989',
     allow_manual_id:   true,   // false = URL parameter only
     collect_id:        true,
-    collect_name:      false,  // see SETUP.md before enabling: name and
-    collect_email:     false,  // email make the OSF dataset identifying
+    collect_name:      true,
+    collect_email:     true,
   },
+
+  // -----------------------------------------------------------------------
+  // Separate DataPipe target for name and email. Kept apart from the
+  // response data on purpose — see the note above.
+  //
+  // On the DataPipe dashboard for THIS experiment:
+  //   - switch "Enable data collection" ON
+  //   - under Validation, set Required Fields to `participant_id`
+  //     (NOT `trial_type`: this file is not written by jsPsych and has no
+  //     trial_type column, so that requirement would reject every upload)
+  // -----------------------------------------------------------------------
+  contact_datapipe: {
+    experiment_id: 'T2jZJusQxUGv',
+    osf_project:   'q3hwn',   // recorded for reference only
+    osf_component: 'qt9x8',   // recorded for reference only
+  },
+
+  // -----------------------------------------------------------------------
+  // Researcher contact, shown on the final screen ("If you have any
+  // questions...") and on the error screen if the upload fails.
+  //
+  // CHANGE THIS before recruiting. validate.js warns while it still holds
+  // the placeholder.
+  // -----------------------------------------------------------------------
+  researcher_contact: 'mariozarco@chain.hokudai.ac.jp',
 
   // -----------------------------------------------------------------------
   // Response keys.

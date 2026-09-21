@@ -481,3 +481,41 @@ body.allow-scaling .stim-panel {
   .wr-question{ font-size: .9rem; margin-bottom: .4rem; }
   .wr-cell input[type="radio"] { width: 14px; height: 14px; }
 }
+
+/* --- Contact details (optional) ----------------------------------------- */
+
+.contact-card { margin-bottom: 1rem; }
+
+.contact-fields {
+  background: #f4f4f4;
+  border-radius: 8px;
+  padding: 1rem 1.4rem;
+  max-width: 480px;
+  margin: 0 auto 1rem;
+  text-align: left;
+  box-shadow: 0 2px 12px rgba(0,0,0,.22);
+}
+
+.contact-fields label {
+  display: block;
+  font-size: .9rem;
+  color: #333;
+  margin: .4rem 0 .9rem;
+}
+
+.contact-fields input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: .3rem;
+  padding: .45rem .6rem;
+  font: inherit;
+  font-size: 1rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+
+/* --- End of session ------------------------------------------------------ */
+
+.end-card { max-width: 600px; text-align: left; }
+.end-card a { color: #4a6fa5; }

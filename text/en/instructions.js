@@ -88,6 +88,34 @@ var TEXT_EN = {
     end_hint: 'Press <b>SPACE</b> to begin.',
   },
 
+  // --- Full screen and screen size --------------------------------------
+  // {W} {H} = the participant's window, {MW} {MH} = the recommended minimum.
+  screen: {
+    fs_title:   'Full screen',
+    fs_body:
+      '<p>This study runs in full screen, so that the pictures are shown at ' +
+      'the same size throughout.</p>' +
+      '<p>Please stay in full screen until the study ends.</p>',
+    fs_button:  'Enter full screen',
+
+    small_title: 'Your screen is smaller than this study needs',
+    small_intro:
+      '<p>This study shows two pictures side by side at a fixed size, so ' +
+      'that every participant sees them in the same way.</p>',
+    small_cut:    '<p><b>On this screen, part of each picture would be cut off.</b></p>',
+    small_scaled: '<p>On this screen the pictures will be shown smaller than intended.</p>',
+    small_size:
+      'Your display area is {W} &times; {H} pixels. At least {MW} &times; ' +
+      '{MH} is recommended.',
+    small_hopeless:
+      '<p>This screen is too small for the study. Please use a larger ' +
+      'computer or an external monitor.</p>',
+    small_continue:
+      '<p>If you can use a larger screen, please close this page and start ' +
+      'again there.</p>',
+    small_hint: 'To continue on this screen anyway, press <b>SPACE</b>.',
+  },
+
   // --- Calibration ------------------------------------------------------
   // Shown before the task. These screens exist because the manipulations
   // are saturation and shadow lifting, so the display is part of the
@@ -95,15 +123,16 @@ var TEXT_EN = {
   calibration: {
     button_continue: 'Continue',
 
-    brightness_title: 'Before we begin &mdash; screen brightness',
+    brightness_title: 'Screen brightness',
     brightness_intro:
       '<p>Some of the pictures in this study differ only in their darker ' +
       'areas. If your screen is dimmed, those differences disappear.</p>' +
       '<p>Please turn your screen brightness up to its <strong>highest ' +
       'setting</strong> now, and leave it there for the whole session.</p>',
     brightness_checkbox:
-      'Please confirm that your screen brightness is set to maximum.',
+      'My screen brightness is set to maximum.',
 
+    gamma_title: 'Screen calibration',
     gamma_intro:
       '<p>Next we will measure a property of your screen that affects how ' +
       'brightness is displayed. You will do a short matching task ' +
@@ -114,9 +143,13 @@ var TEXT_EN = {
       'to judge.</p>',
     gamma_button: 'Begin',
     gamma_prompt:
-      'Adjust the RIGHT square until both squares look the same shade of ' +
-      'grey. Click Confirm when they match.',
+      'Adjust the square on the right until both squares look the same ' +
+      'shade of grey, then click <b>Confirm match</b>.',
     gamma_confirm_button: 'Confirm match',
+    gamma_progress:       'Match {N} of {TOTAL}',
+    gamma_hint:           'Drag the slider, or use the &larr; &rarr; keys.',
+    gamma_label_fixed:    'Reference',
+    gamma_label_adjust:   'Adjust this one',
   },
 
   // --- Participant details: ONE screen with ID, name and email ------------
@@ -205,8 +238,8 @@ var TEXT_EN = {
   // --- Breaks -----------------------------------------------------------
   brk: {
     title: 'Short break',
-    body: '<p>You are {DONE} trials into {TOTAL}.</p>' +
-          '<p>Take a moment if you would like. Please stay in full screen.</p>',
+    body: '<p>You have completed {DONE} of {TOTAL} trials.</p>' +
+          '<p>Take a moment to rest if you like. Please stay in full screen.</p>',
     hint: 'Press <b>SPACE</b> when you are ready to continue.',
   },
 
@@ -215,8 +248,8 @@ var TEXT_EN = {
     message:
       '<div class="card">' +
       '<h2>Loading images</h2>' +
-      '<p>The study is downloading the pictures it needs. This happens once, ' +
-      'at the start, and may take a minute on a slow connection.</p>' +
+      '<p>The study is downloading the pictures it needs. On a slow ' +
+      'connection this may take a minute.</p>' +
       '<p>Please do not close this page.</p>' +
       '</div>',
     error:

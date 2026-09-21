@@ -71,7 +71,7 @@ column is how you find each step's rows.
 | 1 | Participant details (ID + optional name and email, one screen) | `participant_id` | 1 | the ID, how it arrived, and only **whether** a name / email was given. Name and email themselves are never in this file — see §12 |
 | 2 | Fullscreen | `fullscreen` | 1 | — |
 | 3 | Viewport check | *(empty)* + `screen_warning` | 1 + 0 or 1 | display measurements in fullscreen (§5). The warning row appears **only** if the screen was too small |
-| 4 | Size check | `size_check` | 1 | `panel_rendered_w`, `panel_rendered_h` — the measured panel size |
+| 4 | Size check | `size_check` | 0 | **developer screen, off for participants.** Only in dev runs using *Screen & size check*: `panel_rendered_w`, `panel_rendered_h`. In real sessions the panel size is on every trial row as `panel_rendered_px` |
 | 5 | Brightness | `calibration_brightness` | 1 | `brightness_confirmed` (session-level) |
 | 6 | Gamma match | *(empty)* | 3 | `gamma_*` (session-level, §5) |
 | 7 | Word instructions | `word_instructions` | 1 | — |
@@ -135,7 +135,7 @@ from any analysed row with `.iloc[0]`.
 | `id_source` | `url` / `typed` | on the `participant_id` row only. `url` = came from the link unchanged |
 | `id_entered`, `id_valid` | | on the `participant_id` row only |
 | `contact_name_given`, `contact_email_given` | `True` / `False` | whether the participant filled in the optional field. Empty if that field was switched off |
-| `contact_saved` | `True` / `False` / empty | whether the separate contact file uploaded. Empty if nothing was given |
+| `contact_saved` | `True` / `False` / empty | whether DataPipe received the separate contact file. `True` also when DataPipe replied "Data received, OSF upload will be retried" — DataPipe holds the file and delivers it to OSF itself. Empty if nothing was given |
 
 **Exclude any session where `is_test` or `is_dev` is `True`.** A dev
 session run with a trial limit is missing catch trials, consistency trials

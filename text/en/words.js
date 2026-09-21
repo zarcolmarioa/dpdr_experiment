@@ -37,6 +37,7 @@ var WORDS_EN = {
 
   // Shown on its own screen first, so the rating grid itself needs only a
   // one-line reminder and the whole grid fits without scrolling.
+  title: 'Describing your experience',
   instruction:
     '<p>Before the main task, we would like to know how you would describe ' +
     'your experience.</p>' +

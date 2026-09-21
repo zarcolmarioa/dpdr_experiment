@@ -130,12 +130,13 @@ var DevMenu = (function () {
     },
     {
       id: 'save_test', _skipCalib: true,
-      label: 'Upload test — 3 trials',
-      note: 'Three trials, then uploads to DataPipe/OSF. Use to check the save path.',
+      label: 'Upload test — 3 trials + grid',
+      note: 'Three trials, then the 4 grid screens (contrast_local only), then ' +
+            'uploads to DataPipe/OSF. Use to check the save path.',
       upload: true,
       apply: function () {
         return {
-          blocks: { size_check: false, practice: false, main: true, mock: false, grid: false },
+          blocks: { size_check: false, practice: false, main: true, mock: false, grid: true },
           limits: { max_trials: 3, max_practice: 0 },
         };
       },

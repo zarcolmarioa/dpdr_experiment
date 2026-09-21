@@ -36,28 +36,23 @@ var BrightnessConfirmation = (function () {
         var display = jsPsych.getDisplayElement();
 
         display.innerHTML =
-          '<div class="calibration-card" style="text-align:center;">' +
+          '<div class="calibration-card">' +
 
           '<h2>' + T.brightness_title + '</h2>' +
 
           T.brightness_intro +
 
-          '<div style="margin:28px auto; max-width:520px;">' +
+          '<label class="check-line">' +
+          '<input type="checkbox" id="brightness-checkbox">' +
+          '<span>' + T.brightness_checkbox + '</span>' +
+          '</label>' +
 
-          '<p style="margin:0 0 16px 0; font-size:0.95rem; text-align:center;">' +
-          T.brightness_checkbox +
-          '</p>' +
-
-          '<input type="checkbox" id="brightness-checkbox" ' +
-          'style="display:block; margin:16px auto; width:22px; height:22px; ' +
-          'cursor:pointer;">' +
-
-          '</div>' +
-
+          '<div class="btn-row">' +
           '<button id="brightness-continue-btn" class="calib-btn" ' +
           'disabled style="opacity:0.35; cursor:not-allowed;">' +
           T.button_continue +
           '</button>' +
+          '</div>' +
 
           '</div>';
 

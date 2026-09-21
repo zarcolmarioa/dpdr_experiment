@@ -214,7 +214,7 @@ var CONFIG = {
   // what makes the data interpretable.
   // -----------------------------------------------------------------------
   data: {
-    set:            'lum_p05',
+    set:            'contrast_local',
     available_sets: ['lum_p05', 'contrast_local'],
     sets_dir:       'data/sets/',
 
@@ -229,7 +229,9 @@ var CONFIG = {
   // phase can be tested without sitting through the whole session.
   // -----------------------------------------------------------------------
   blocks: {
-    size_check: true,   // the panel-size verification screen
+    size_check: false,  // developer screen showing the measured panel size.
+                        // Not for participants; the 'Screen & size check'
+                        // dev preset switches it on.
     words:      true,   // descriptor ratings — MUST run before the images
     practice:   true,
     main:       true,

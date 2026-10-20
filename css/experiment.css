@@ -34,15 +34,16 @@ html, body {
   padding: 2rem 2.5rem;
   max-width: 640px;
   margin: 0 auto;
-  text-align: left;
+  text-align: justify;
+  text-justify: inter-character;   /* even spacing for Japanese */
   line-height: 1.6;
   box-shadow: 0 2px 12px rgba(0,0,0,.25);
 }
 
-.card h2 { margin-top: 0; font-size: 1.3rem; }
+.card h2 { margin-top: 0; font-size: 1.3rem; text-align: center; }
 .card p  { margin: .8rem 0; }
 
-.card .hint { font-size: .9rem; color: #555; }
+.card .hint { font-size: .9rem; color: #555; text-align: center; }
 
 .id-echo {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -318,7 +319,22 @@ body.allow-scaling .stim-panel {
   box-shadow: 0 2px 12px rgba(0,0,0,.25);
 }
 
-.calibration-card h2 { margin-top: 0; font-size: 1.3rem; }
+.calibration-card { text-align: justify; text-justify: inter-character; }
+.calibration-card h2 { margin-top: 0; font-size: 1.3rem; text-align: center; }
+
+/* Checkbox and its sentence on one line, box on the left. */
+.check-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .7rem;
+  margin: 1.6rem 0 .6rem;
+  cursor: pointer;
+  text-align: left;
+}
+.check-line input { width: 20px; height: 20px; margin: 0; cursor: pointer; flex: 0 0 auto; }
+
+.btn-row { text-align: center; }
 
 .calib-btn {
   margin-top: .8rem;
@@ -489,8 +505,10 @@ body.allow-scaling .stim-panel {
 .contact-fields {
   background: #f4f4f4;
   border-radius: 8px;
-  padding: 1rem 1.4rem;
-  max-width: 480px;
+  padding: 1.2rem 2.5rem;
+  width: 720px;           /* same width as the text card above it */
+  max-width: 100%;
+  box-sizing: border-box;
   margin: 0 auto 1rem;
   text-align: left;
   box-shadow: 0 2px 12px rgba(0,0,0,.22);
@@ -517,7 +535,7 @@ body.allow-scaling .stim-panel {
 
 /* --- End of session ------------------------------------------------------ */
 
-.end-card { max-width: 600px; text-align: left; }
+.end-card { max-width: 600px; }
 .end-card a { color: #4a6fa5; }
 
 .contact-fields .field-hint {
@@ -603,3 +621,26 @@ body.allow-scaling .stim-panel {
   font-size: .85rem;
   color: rgba(255,255,255,.7);
 }
+
+/* --- Buttons: one look everywhere -------------------------------------- */
+
+/* jsPsych's own buttons (instruction screens, fullscreen) and the gamma
+   module's buttons match .calib-btn, so every button in the study looks
+   the same. */
+.jspsych-btn,
+.ne-continue-btn {
+  padding: .5rem 1.6rem;
+  font: inherit;
+  font-size: 1rem;
+  color: #fff;
+  background: #4a6fa5;
+  border: 1px solid #4a6fa5;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.jspsych-btn:hover,
+.ne-continue-btn:hover { background: #3d5d8c; border-color: #3d5d8c; }
+.calib-btn:not([disabled]) { cursor: pointer; }
+
+/* Button row under a card (html-button-response puts it outside). */
+#jspsych-html-button-response-btngroup { margin-top: 1.2rem; }

@@ -92,7 +92,8 @@ var WordsPhase = (function () {
     var W = words();
     return {
       type: jsPsychHtmlButtonResponse,
-      stimulus: '<div class="card word-intro">' + W.instruction + '</div>',
+      stimulus: '<div class="card word-intro"><h2>' + W.title + '</h2>' +
+                W.instruction + '</div>',
       choices: [W.button_begin],
       data: { block: 'word_instructions' },
     };

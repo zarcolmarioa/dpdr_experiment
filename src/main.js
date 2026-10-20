@@ -20,22 +20,15 @@
           jsPsychHtmlButtonResponse, jsPsychSurveyLikert, jsPsychSurveyHtmlForm,
           jsPsychPipe, jsPsychPavlovia */
 
-var jsPsych = initJsPsych({
-  on_finish: function () {
-    // In local mode nothing is uploaded, so the file is downloaded instead.
-    if (CONFIG.platform === 'local') {
-      var filename = Record.sessionFilename(ParticipantID.get() || 'NOID');
-      jsPsych.data.get().localSave('csv', filename);
-    }
-    if (CONFIG.debug) {
-      console.log('[Data] Final dataset:');
-      console.log(jsPsych.data.get().csv());
-    }
-  },
-});
+// NOTE: there is deliberately no on_finish here. The completion screen
+// waits for the participant to close the page, so the timeline never
+// finishes and an on_finish would never run. Local-mode saving is done by
+// an explicit node in _buildSaveNodes() instead.
+var jsPsych = initJsPsych({});
 
 // Holds whatever DataPipe reports back, so the completion screen can show it.
-var UPLOAD_RESULT = { attempted: false, success: null, detail: '' };
+// status: 'saved' | 'queued' | 'failed' — see ParticipantID.pipeStatus().
+var UPLOAD_RESULT = { attempted: false, success: null, status: null, detail: '' };
 
 // ---------------------------------------------------------------------------
 // Pavlovia init node — must be the first thing in the timeline.
@@ -56,7 +49,7 @@ function _buildPavloviaInit() {
 //
 // 'github'   -> DataPipe upload to the OSF component
 // 'pavlovia' -> Pavlovia finish command
-// 'local'    -> nothing here; on_finish above downloads the CSV
+// 'local'    -> a node below downloads the CSV to the participant's computer
 // ---------------------------------------------------------------------------
 function _buildSaveNodes() {
   var nodes = [];
@@ -78,6 +71,19 @@ function _buildSaveNodes() {
     },
   });
 
+  // Local mode: nothing is uploaded, so the CSV is downloaded here, BEFORE
+  // the completion screen (which never ends by itself).
+  if (CONFIG.platform === 'local') {
+    nodes.push({
+      type: jsPsychCallFunction,
+      func: function () {
+        var filename = Record.sessionFilename(ParticipantID.get() || 'NOID');
+        jsPsych.data.get().localSave('csv', filename);
+        if (CONFIG.debug) console.log('[Data] local CSV saved: ' + filename);
+      },
+    });
+  }
+
   if (CONFIG.platform === 'github') {
     nodes.push({
       type:          jsPsychPipe,
@@ -96,7 +102,8 @@ function _buildSaveNodes() {
         // as success (it returns the Error object, which has no .error
         // field). Success is judged from DataPipe's own reply instead.
         UPLOAD_RESULT.attempted = true;
-        UPLOAD_RESULT.success   = ParticipantID.pipeSucceeded(data.result);
+        UPLOAD_RESULT.status    = ParticipantID.pipeStatus(data.result);
+        UPLOAD_RESULT.success   = (UPLOAD_RESULT.status !== 'failed');
         try {
           UPLOAD_RESULT.detail = JSON.stringify(data);
         } catch (e) {
@@ -144,6 +151,16 @@ function _contactHTML() {
   return c;
 }
 
+// Debug wording for an upload outcome.
+function _statusHTML(status) {
+  if (status === 'saved')  return '<span class="ok">SAVED &mdash; on OSF now</span>';
+  if (status === 'queued') return '<span class="ok">RECEIVED by DataPipe &mdash; ' +
+                                  'OSF upload pending, DataPipe retries automatically. ' +
+                                  'Check OSF in a few minutes.</span>';
+  if (status === 'failed') return '<span class="fail">FAILED</span>';
+  return '<code>not attempted</code> (no name/email given, or still running)';
+}
+
 function _buildCompletionNode() {
   return {
     type: jsPsychHtmlKeyboardResponse,
@@ -177,7 +194,7 @@ function _buildCompletionNode() {
                 (ParticipantID.get() || 'none') + '</code>' +
                 (ParticipantID.isSuperuser() ? ' (test session)' : '') + '</p>';
         html += '<p>Contact upload (to ' + CONFIG.contact_datapipe.experiment_id +
-                '): <code>' + String(ParticipantID.contactSaved()) + '</code></p>';
+                '): ' + _statusHTML(ParticipantID.contactStatus()) + '</p>';
         if (ParticipantID.contactReply()) {
           html += '<pre>' + ParticipantID.contactReply()
                     .replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
@@ -188,7 +205,8 @@ function _buildCompletionNode() {
         } else if (!UPLOAD_RESULT.attempted) {
           html += '<p class="fail">No upload was attempted.</p>';
         } else if (UPLOAD_RESULT.success) {
-          html += '<p class="ok">Upload reported SUCCESS.</p>';
+          html += '<p>Responses upload (to ' + CONFIG.datapipe.experiment_id +
+                  '): ' + _statusHTML(UPLOAD_RESULT.status) + '</p>';
         } else {
           html += '<p class="fail">Upload FAILED. Check that ' +
                   '&ldquo;Enable data collection&rdquo; is switched on for ' +

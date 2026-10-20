@@ -36,11 +36,13 @@ var ParticipantID = (function () {
   var _superuser    = false;
   var _contactSaved = null;   // true / false once the upload returns
   var _contactReply = '';     // DataPipe's raw reply, shown in debug mode
+  var _contactStatus = null;  // 'saved' / 'queued' / 'failed', for debug
 
   function get()          { return _id; }
   function isSuperuser()  { return _superuser; }
   function contactSaved() { return _contactSaved; }
   function contactReply() { return _contactReply; }
+  function contactStatus() { return _contactStatus; }
 
   function _describe(x) {
     if (x instanceof Error) return x.name + ': ' + x.message;
@@ -128,17 +130,37 @@ var ParticipantID = (function () {
     return s;
   }
 
-  // DataPipe reports success as {message: 'Success'}. The plugin marks a
-  // NETWORK failure as success too (it returns the Error object, which has
-  // no .error field), so success is judged from the message itself.
+  // DataPipe replies in one of three ways:
+  //
+  //   'saved'   {message: 'Success'}                 — on OSF now
+  //   'queued'  {message: 'Data received. OSF upload
+  //              will be retried automatically.'}    — DataPipe HAS the
+  //             file; OSF was slow or briefly down and DataPipe keeps
+  //             retrying on its own. The data is safe.
+  //   'failed'  anything else, including an {error: ...} reply
+  //
+  // The plugin marks a NETWORK failure as success too (it returns the Error
+  // object, which has no .error field), so the outcome is judged from the
+  // message itself, never from the plugin's own success flag.
+  function pipeStatus(result) {
+    if (!result || result.error) return 'failed';
+    var msg = String(result.message || '');
+    if (msg === 'Success') return 'saved';
+    if (/data received/i.test(msg)) return 'queued';
+    return 'failed';
+  }
+
+  // Saved or queued both count: in either case DataPipe holds the file, so
+  // the participant must NOT be sent to the download-and-email fallback.
   function pipeSucceeded(result) {
-    return !!(result && result.message === 'Success' && !result.error);
+    return pipeStatus(result) !== 'failed';
   }
 
   function _uploadContact(name, email) {
     if (typeof jsPsychPipe === 'undefined' || !jsPsychPipe.saveData) {
       console.error('[Contact] DataPipe plugin not loaded — contact not saved.');
       _contactSaved = false;
+      _contactStatus = 'failed';
       return;
     }
 
@@ -154,12 +176,14 @@ var ParticipantID = (function () {
 
     jsPsychPipe.saveData(CONFIG.contact_datapipe.experiment_id, filename, csv)
       .then(function (result) {
-        _contactSaved = pipeSucceeded(result);
-        _contactReply = _describe(result);
-        console.log('[Contact] upload ' + (_contactSaved ? 'succeeded' : 'FAILED'), result);
+        _contactStatus = pipeStatus(result);
+        _contactSaved  = (_contactStatus !== 'failed');
+        _contactReply  = _describe(result);
+        console.log('[Contact] upload ' + _contactStatus, result);
       })
       .catch(function (err) {
         _contactSaved = false;
+        _contactStatus = 'failed';
         _contactReply = _describe(err);
         console.error('[Contact] upload failed', err);
       });
@@ -310,6 +334,8 @@ var ParticipantID = (function () {
     contactSaved:  contactSaved,
     contactReply:  contactReply,
     pipeSucceeded: pipeSucceeded,
+    pipeStatus:    pipeStatus,
+    contactStatus: contactStatus,
     buildNodes:    buildNodes,
   };
 })();

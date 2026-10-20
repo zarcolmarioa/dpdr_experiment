@@ -79,13 +79,9 @@ var ScreenCheck = (function () {
         type: jsPsychFullscreen,
         fullscreen_mode: true,
         message:
-          '<div class="card">' +
-          '<h2>Full screen required</h2>' +
-          '<p>This study must run in full screen, so that the images are ' +
-          'shown at the same size throughout.</p>' +
-          '<p>Please do not leave full screen until the study ends.</p>' +
-          '</div>',
-        button_label: 'Enter full screen',
+          '<div class="card"><h2>' + Loader.text().screen.fs_title + '</h2>' +
+          Loader.text().screen.fs_body + '</div>',
+        button_label: Loader.text().screen.fs_button,
         data: { block: 'fullscreen' },
         on_finish: function () { _restoreFocus(); },
       });
@@ -118,31 +114,23 @@ var ScreenCheck = (function () {
           stimulus: function () {
             var hopeless = _viewportHopeless();
             var scaling = CONFIG.display.allow_scaling;
+            var S = Loader.text().screen;
             var html =
-              '<div class="card">' +
-              '<h2>Your screen is smaller than this study needs</h2>' +
-              '<p>This study shows two images side by side at a fixed size, ' +
-              'so that every participant sees them identically.</p>' +
-              (scaling
-                ? '<p>On this screen they will be shown smaller than ' +
-                  'intended.</p>'
-                : '<p><b>On this screen, part of each image would be cut ' +
-                  'off.</b></p>') +
-              '<p class="hint">Your display area is ' +
-              window.innerWidth + ' &times; ' + window.innerHeight +
-              ' pixels. We recommend at least ' +
-              CONFIG.display.min_width + ' &times; ' +
-              CONFIG.display.min_height + '.</p>';
+              '<div class="card"><h2>' + S.small_title + '</h2>' +
+              S.small_intro +
+              (scaling ? S.small_scaled : S.small_cut) +
+              '<p class="hint">' +
+              S.small_size.replace('{W}', window.innerWidth)
+                          .replace('{H}', window.innerHeight)
+                          .replace('{MW}', CONFIG.display.min_width)
+                          .replace('{MH}', CONFIG.display.min_height) +
+              '</p>';
 
             if (hopeless) {
-              html += '<p>This screen is too small to run the study. Please ' +
-                      'use a larger computer or an external monitor.</p>' +
-                      '</div>';
+              html += S.small_hopeless + '</div>';
             } else {
-              html += '<p>If you can use a larger screen, please close this ' +
-                      'page and start again there.</p>' +
-                      '<p>To continue on this screen anyway, press ' +
-                      '<b>SPACE</b>.</p></div>';
+              html += S.small_continue +
+                      '<p class="hint">' + S.small_hint + '</p></div>';
             }
             return html;
           },

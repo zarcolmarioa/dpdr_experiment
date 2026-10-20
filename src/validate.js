@@ -248,7 +248,7 @@ var Validate = (function () {
       if (dupes.length) {
         errors.push('Duplicate word ids: ' + dupes.join(', '));
       }
-      ['instruction', 'question_short', 'anchor_low', 'anchor_high',
+      ['title', 'instruction', 'question_short', 'anchor_low', 'anchor_high',
        'button_begin', 'button_submit', 'progress'].forEach(function (k) {
         if (WORDS_EN[k] === undefined) errors.push('WORDS_EN is missing "' + k + '".');
         if (WORDS_JA[k] === undefined) errors.push('WORDS_JA is missing "' + k + '".');

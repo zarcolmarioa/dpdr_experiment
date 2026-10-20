@@ -186,7 +186,8 @@ var GammaCalibration = (function () {
     const checkerIsSurround = (orientation === 'checker_surround');
 
     if (arrangement === 'split_field') {
-      return { fixed: 'FIXED (checkerboard)', adjust: 'ADJUST \u2190 \u2192' };
+      var C = Loader.text().calibration;
+      return { fixed: C.gamma_label_fixed, adjust: C.gamma_label_adjust };
     }
     // centre_surround
     if (checkerIsSurround) {
@@ -228,7 +229,7 @@ var GammaCalibration = (function () {
       type: jsPsychHtmlButtonResponse,
       stimulus:
         '<div class="calibration-card">' +
-        '<h2>Display Calibration \u2014 Step 3 of 4</h2>' +
+        '<h2>' + Loader.text().calibration.gamma_title + '</h2>' +
         Loader.text().calibration.gamma_intro +
         '</div>',
       choices: [Loader.text().calibration.gamma_button],
@@ -280,10 +281,10 @@ var GammaCalibration = (function () {
             '<div style="display:flex; width:' + canvasW + 'px; ' +
             'justify-content:space-between; margin-bottom:6px; max-width:100%;">' +
             '<span style="width:' + PATCH_SIZE_CSS + 'px; text-align:center; ' +
-            'color:#aaa; font-size:0.75rem; font-family:monospace;">' +
+            'color:#ddd; font-size:0.85rem;">' +
             labels.fixed + '</span>' +
             '<span style="width:' + PATCH_SIZE_CSS + 'px; text-align:center; ' +
-            'color:#aaa; font-size:0.75rem; font-family:monospace;">' +
+            'color:#ddd; font-size:0.85rem;">' +
             labels.adjust + '</span>' +
             '</div>';
         } else {
@@ -305,11 +306,13 @@ var GammaCalibration = (function () {
               sliderCSS +
               '<div style="text-align:center; padding:20px 0;">' +
 
-              '<p style="color:#999; font-family:monospace; font-size:0.8rem; ' +
-              'margin-bottom:6px;">Match ' + (matchIndex + 1) +
-              ' of ' + N_MATCHES + '</p>' +
+              '<p style="color:#ddd; font-size:0.85rem; ' +
+              'margin-bottom:6px;">' +
+              Loader.text().calibration.gamma_progress
+                .replace('{N}', matchIndex + 1).replace('{TOTAL}', N_MATCHES) +
+              '</p>' +
 
-              '<p style="color:#ccc; font-family:monospace; font-size:0.85rem; ' +
+              '<p style="color:#f0f0f0; font-size:1rem; ' +
               'margin-bottom:20px; max-width:600px; ' +
               'margin-left:auto; margin-right:auto;">' +
               Loader.text().calibration.gamma_prompt +
@@ -333,9 +336,8 @@ var GammaCalibration = (function () {
               '</button>' +
               '</div>' +
 
-              '<p style="color:#555; font-size:0.75rem; margin-top:10px;">' +
-              'Drag the slider or use \u2190 \u2192 keys to adjust \u00b7 ' +
-              'Click Confirm when done' +
+              '<p style="color:#ddd; font-size:0.8rem; margin-top:10px;">' +
+              Loader.text().calibration.gamma_hint +
               '</p>' +
 
               '</div>';

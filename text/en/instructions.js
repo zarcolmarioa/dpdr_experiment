@@ -3,43 +3,153 @@
  *
  * Nothing displayed to a participant is written anywhere else in the code.
  * text/ja/instructions.js holds the same keys in Japanese; CONFIG.language
- * selects between them, and validate.js checks the two key sets match so a
- * missing translation is caught before anyone runs the study.
+ * (or ?lang=) selects between them, and validate.js checks the two key sets
+ * match so a missing translation is caught before anyone runs the study.
+ *
+ * GROUP-DEPENDENT STRINGS
+ * -----------------------
+ * The two groups (?group=participant / ?group=control) see the same study;
+ * only four things are worded differently:
+ *   anchoring.body, prompt.main, grid.question_episode, and the word-rating
+ *   instruction and question (text/en/words.js).
+ * Each of these is an object with one entry per group. Everything else is
+ * the same for both groups, so it must not presume either one — the
+ * practice and grid instructions describe the task mechanically and point
+ * to the question shown on screen.
  *
  * FRAMING RULES — these wordings are deliberate, not incidental:
  *
- *  - The condition is NAMED ("an episode of depersonalization or
- *    derealization"), never DESCRIBED. Words like "unreal", "unfamiliar",
- *    "dreamlike" or "as if behind glass" name perceptual qualities, and
- *    those qualities are exactly what the word ratings and the image
- *    manipulations measure. Using them here would prime both the predictor
- *    and the outcome.
+ *  - The experience is never DESCRIBED with visual words: foggy, blurred,
+ *    faded, dull, colourless, unreal, dreamlike, flat, veiled, as if behind
+ *    glass. Those name perceptual qualities, and those qualities are
+ *    exactly what the word ratings and the image manipulations measure.
+ *    Using them would prime both. validate.js warns if one appears in an
+ *    English instruction. (The rated words and the questionnaire items are
+ *    exempt: their wording is the measure.)
  *
- *  - The judgment is anchored on SURROUNDINGS, not on the self.
- *    Depersonalization concerns the self feeling unreal; derealization
- *    concerns the world. Every stimulus is a scene, so the instruction has
- *    to point at the world or participants will recall self-focused
- *    experiences the images cannot represent.
+ *  - No interview is mentioned anywhere.
+ *
+ *  - The judgment is anchored on SURROUNDINGS, not on the self. Every
+ *    stimulus is a scene, so the instruction has to point at the world.
  *
  *  - The manipulation is ACKNOWLEDGED but UNSPECIFIED. Both images in a
  *    pair are the same scene, so participants will notice something was
  *    done. Saying "adjusted in different ways" closes the question without
- *    hinting at colour or haze.
+ *    hinting at colour or contrast.
  *
  *  - Nothing may suggest this is a DETECTION task. "Which looks more
  *    edited/distorted/altered" would convert a judgment about resemblance
- *    into a discrimination task, which people are good at and which
- *    measures something else entirely.
+ *    into a discrimination task, which measures something else entirely.
+ *
+ * PLACEHOLDERS — to be replaced before recruiting
+ * -----------------------------------------------
+ *  - consent.*      the whole consent text (PLACEHOLDER, see below)
+ *  - state.items    the four questionnaire items (paste the exact wording)
+ * Bracketed gaps like [researcher names] are detected by validate.js: a
+ * warning in debug mode, an error on index.html with debug off.
  * ========================================================================= */
 
 var TEXT_EN = {
 
   lang_name: 'English',
 
+  // --- Incomplete link: no valid ?group= -----------------------------------
+  // Same kind of message as a missing participant ID.
+  link: {
+    missing_title: 'Incomplete link',
+    missing_body:  '<p>This link is incomplete. Please use the full link from ' +
+                   'your invitation email, or contact the researcher.</p>',
+  },
+
+  // --- Consent (the first screen) -------------------------------------------
+  // >>> PLACEHOLDER — NOT THE APPROVED WORDING. <<<
+  // Replace title/body/checkbox with the ethics-approved text, in this file
+  // and in text/ja/instructions.js, and nowhere else. Every [bracketed gap]
+  // must be filled: validate.js refuses a production session while any
+  // remain.
+  //
+  // Facts the approved text must keep true to how the code behaves:
+  //  - an optional name and email are uploaded AS SOON AS THEY ARE ENTERED
+  //    (ID screen), separately from the responses, even if the session is
+  //    not finished;
+  //  - everything else is uploaded only at the very end; closing the page
+  //    earlier saves nothing else;
+  //  - the optional note naming the episode (participants only) is stored
+  //    WITH the responses.
+  consent: {
+    title: 'Consent to take part',
+    body:
+      '<p>You are invited to take part in a research study about how people ' +
+      'perceive their surroundings. It is run by [researcher names] at ' +
+      '[institution].</p>' +
+      '<p><b>What you will do:</b> look at pairs of photographs and choose ' +
+      'between them, then answer a few short questions. It takes about ' +
+      '[25] minutes.</p>' +
+      '<p><b>Risks:</b> we do not expect any risks beyond those of everyday ' +
+      'computer use. Some questions ask about unusual experiences; you may ' +
+      'stop at any time.</p>' +
+      '<p><b>Benefits:</b> there is no direct benefit to you. ' +
+      '[Compensation, if any.]</p>' +
+      '<p><b>Your data:</b> your responses are stored under a study ID, ' +
+      'without your name. Results are reported only for groups or without ' +
+      'identifying information. [Storage period and who has access.] ' +
+      '[Whether anonymised data may be shared publicly, e.g. on OSF.]</p>' +
+      '<p>You may be asked to note, in a few words, which experience you are ' +
+      'thinking of. This note is optional and is stored with your responses, ' +
+      'so please do not include names or other details that could identify ' +
+      'you or anyone else.</p>' +
+      '<p><b>Voluntary participation:</b> taking part is voluntary. You may ' +
+      'stop at any time by closing this page. Your responses are saved only ' +
+      'at the end of the study, so if you close the page before then, none of ' +
+      'them are saved. The exception is your name and email address: they are ' +
+      'optional, and if you give them they are saved straight away, ' +
+      'separately from your responses, even if you do not finish. ' +
+      '[How to withdraw data after submission.]</p>' +
+      '<p><b>Contact:</b> [researcher email]. For questions about your rights ' +
+      'as a participant: [ethics committee contact]. [Ethics approval ' +
+      'number.]</p>',
+    checkbox:
+      'I have read the information above, I am at least 18 years old, and I ' +
+      'agree to take part.',
+    button_agree:   'I agree, continue',
+    button_decline: 'I do not agree',
+
+    // Shown after "I do not agree". Nothing has been saved at that point.
+    declined_title: 'Thank you',
+    declined_body:
+      '<p>You have chosen not to take part. Nothing has been saved.</p>' +
+      '<p>You may now close this page.</p>',
+  },
+
   // --- Prompts shown above the image pair -------------------------------
+  // GROUP-DEPENDENT. Shown on every image trial, practice included.
   prompt: {
-    // Shown on every analysed trial. See framing rules above.
-    main: 'Which looks more like how your surroundings looked to you during an episode?',
+    main: {
+      participant: 'Which looks more like how your surroundings looked during that episode?',
+      control:     'Which looks more like how the surroundings might look to someone experiencing derealization?',
+    },
+  },
+
+  // --- Anchoring (just before the practice) -----------------------------
+  // body is GROUP-DEPENDENT. The note box is shown to participants only.
+  anchoring: {
+    title: 'Before you begin',
+    body: {
+      participant:
+        '<p>Please bring to mind one specific episode in which your ' +
+        'surroundings felt different from usual, ideally a recent one that you ' +
+        'remember clearly.</p>' +
+        '<p>Throughout this study, please answer about that episode.</p>',
+      control:
+        '<p>Derealization is an experience in which one&rsquo;s surroundings ' +
+        'feel strange or detached, as if one were cut off from the world.</p>' +
+        '<p>In this study, please imagine how the surroundings might look to ' +
+        'someone experiencing derealization.</p>',
+    },
+    note_label: 'In a few words, which episode is it? (for example, where you were)',
+    note_hint:  'Optional. Please do not include names or other details that ' +
+                'could identify you or anyone else.',
+    button:     'Continue',
   },
 
   // --- Catch trials -----------------------------------------------------
@@ -53,17 +163,17 @@ var TEXT_EN = {
   },
 
   // --- Practice ---------------------------------------------------------
+  // The same for both groups: the task is described mechanically, and the
+  // question itself is the group-dependent prompt above the pictures.
   practice: {
     title: 'The task',
     body:
-      '<p>Earlier you took part in an interview about your experiences.</p>' +
       '<p>On each trial you will see two pictures of the same place, side ' +
       'by side. The two pictures have been adjusted in different ways.</p>' +
-      '<p>Choose the one that looks more like how your surroundings looked ' +
-      'to you <b>during an episode of depersonalization or ' +
-      'derealization</b>.</p>' +
-      '<p>There is no right or wrong answer, and we are not testing your ' +
-      'memory. Go with your first impression.</p>' +
+      '<p>A question is shown above the pictures. Choose the picture that ' +
+      'fits the question better.</p>' +
+      '<p>There is no right or wrong answer. Go with your first ' +
+      'impression.</p>' +
       '<p>Use the <b>&#8592;</b> and <b>&#8594;</b> arrow keys to choose the ' +
       'picture on the left or on the right.</p>' +
       '<p>We will begin with a few practice trials.</p>',
@@ -79,8 +189,8 @@ var TEXT_EN = {
     end_title: 'End of practice',
     end_body:
       '<p>That is the end of the practice.</p>' +
-      '<p>The main part works the same way. It has about 140 trials and ' +
-      'takes roughly 15 minutes. There are short breaks along the way.</p>' +
+      '<p>The main part works the same way. It has 205 trials and takes ' +
+      'about 10 minutes. There are short breaks along the way.</p>' +
       '<p><b>Occasionally a screen will appear with no pictures</b>, asking ' +
       'you to press a particular arrow key. These check that you are still ' +
       'reading the screen. Take your time on them &mdash; there is no time ' +
@@ -88,7 +198,8 @@ var TEXT_EN = {
     end_hint: 'Press <b>SPACE</b> to begin.',
   },
 
-  // --- Full screen and screen size --------------------------------------
+  // --- Full screen and the window check ---------------------------------
+  // The window check is a HARD STOP: there is no "continue anyway".
   // {W} {H} = the participant's window, {MW} {MH} = the recommended minimum.
   screen: {
     fs_title:   'Full screen',
@@ -98,27 +209,23 @@ var TEXT_EN = {
       '<p>Please stay in full screen until the study ends.</p>',
     fs_button:  'Enter full screen',
 
-    small_title: 'Your screen is smaller than this study needs',
-    small_intro:
+    small_title: 'This window is too small for the study',
+    small_body:
       '<p>This study shows two pictures side by side at a fixed size, so ' +
-      'that every participant sees them in the same way.</p>',
-    small_cut:    '<p><b>On this screen, part of each picture would be cut off.</b></p>',
-    small_scaled: '<p>On this screen the pictures will be shown smaller than intended.</p>',
+      'that everyone sees them in the same way. In this window, part of the ' +
+      'pictures or of the question would be cut off.</p>' +
+      '<p>Please make your browser window larger, or use a computer with a ' +
+      'larger screen, and then open the link from your invitation again.</p>' +
+      '<p>If your browser is zoomed in, setting the zoom back to 100% ' +
+      '(Ctrl + 0, or &#8984; + 0 on a Mac) may be enough.</p>',
     small_size:
       'Your display area is {W} &times; {H} pixels. At least {MW} &times; ' +
       '{MH} is recommended.',
-    small_hopeless:
-      '<p>This screen is too small for the study. Please use a larger ' +
-      'computer or an external monitor.</p>',
-    small_continue:
-      '<p>If you can use a larger screen, please close this page and start ' +
-      'again there.</p>',
-    small_hint: 'To continue on this screen anyway, press <b>SPACE</b>.',
   },
 
   // --- Calibration ------------------------------------------------------
   // Shown before the task. These screens exist because the manipulations
-  // are saturation and shadow lifting, so the display is part of the
+  // are colour and local contrast, so the display is part of the
   // measurement — see the module headers in src/calibration/.
   calibration: {
     button_continue: 'Continue',
@@ -129,6 +236,12 @@ var TEXT_EN = {
       'areas. If your screen is dimmed, those differences disappear.</p>' +
       '<p>Please turn your screen brightness up to its <strong>highest ' +
       'setting</strong> now, and leave it there for the whole session.</p>',
+    // Viewing-conditions note. Not confirmed, not recorded.
+    brightness_filters:
+      '<p>If you can, please also switch off night mode, blue-light filters ' +
+      'or colour filters on this device. If you do not know whether these ' +
+      'are on, or how to switch them off, do not worry and simply ' +
+      'continue.</p>',
     brightness_checkbox:
       'My screen brightness is set to maximum.',
 
@@ -208,34 +321,72 @@ var TEXT_EN = {
                   'emailed it, you may close this page.',
   },
 
-  // --- Grid block -------------------------------------------------------
-  // Shown after the pair trials, only for sets that have a grid. Same
-  // framing rules as above: the change is acknowledged, never named.
+  // --- Grid blocks ------------------------------------------------------
+  // Two blocks: `episode` after the pair trials, `normal` after the word
+  // ratings. Each has its own short instruction screen. The episode
+  // instructions are the same for both groups and point to the question
+  // on screen; question_episode is GROUP-DEPENDENT. The normal block's
+  // question is the same for both groups.
   grid: {
-    title:        'One more task',
-    instructions:
-      '<p>On the next four screens you will see several scenes, each shown ' +
-      'at different levels of a visual change. Each <b>column</b> shows one ' +
-      'level.</p>' +
-      '<p>Choose the column that looks most like how your surroundings ' +
-      'looked to you during an episode. Click anywhere in a column to ' +
-      'choose it.</p>' +
-      '<p>If none of the columns resembles it, choose <b>None of these</b>.</p>' +
-      '<p>You can change your choice before pressing Continue. There is no ' +
-      'time limit.</p>',
+    episode: {
+      title: 'Choosing a column',
+      instructions:
+        '<p>On the next four screens you will see three scenes, one in each ' +
+        'row. Each scene is shown several times across the screen, adjusted to ' +
+        'a different degree each time. Each <b>column</b> shows one degree of ' +
+        'adjustment.</p>' +
+        '<p>Answer the question at the top of each screen by choosing a ' +
+        'column. Click anywhere in a column to choose it.</p>' +
+        '<p>If no column fits, choose <b>None of these</b>.</p>' +
+        '<p>You can change your choice before pressing Continue. There is no ' +
+        'time limit.</p>',
+    },
+    normal: {
+      title: 'One more set of screens',
+      instructions:
+        '<p>The next four screens work the same way, with different ' +
+        'scenes.</p>' +
+        '<p>This time, choose the column that looks most like how your ' +
+        'surroundings <b>normally</b> look.</p>' +
+        '<p>Click anywhere in a column to choose it. You can change your ' +
+        'choice before pressing Continue. There is no time limit.</p>',
+    },
     button_begin:    'Begin',
-    question:        'Which column looks most like how your surroundings looked to you during an episode?',
+    question_episode: {
+      participant: 'Which column looks most like how your surroundings looked during that episode?',
+      control:     'Which column looks most like how the surroundings might look to someone experiencing derealization?',
+    },
+    question_normal: 'Which column looks most like how your surroundings normally look?',
     none:            'None of these',
     button_continue: 'Continue',
     progress:        'Screen {DONE} of {TOTAL}',
-    // Only used if CONFIG.blocks.grid_none_text is switched on.
-    none_text_prompt:
-      'You chose &ldquo;None of these&rdquo; at least once. In your own words, ' +
-      'how did your surroundings look different? (optional)',
+    // Shown right after a screen answered "None of these" (episode block,
+    // CONFIG.blocks.grid_none_text). Optional; recorded on that screen's row.
+    none_text_prompt: 'In your own words, what would have fitted better? (optional)',
     none_text_button: 'Continue',
   },
 
+  // --- State items (optional block at the end) --------------------------
+  // >>> PLACEHOLDERS: paste the exact published English wording of items
+  // 2, 13, 19 and 29 into `label`. Keep the ids and the order. <<<
+  // Same 0-6 scale as the word ratings; every item must be answered.
+  state: {
+    lead_in:     'Right now, at this moment:',
+    anchor_low:  'not at all',
+    anchor_high: 'completely',
+    items: [
+      { id: 'q02', label: '[CDS item 2: paste wording]' },
+      { id: 'q13', label: '[CDS item 13: paste wording]' },
+      { id: 'q19', label: '[CDS item 19: paste wording]' },
+      { id: 'q29', label: '[CDS item 29: paste wording]' },
+    ],
+    button_submit: 'Continue',
+    progress:      '{DONE} of {TOTAL} answered',
+  },
+
   // --- Breaks -----------------------------------------------------------
+  // {DONE} and {TOTAL} are filled in from the trial list (205 main trials,
+  // a break after every 41).
   brk: {
     title: 'Short break',
     body: '<p>You have completed {DONE} of {TOTAL} trials.</p>' +

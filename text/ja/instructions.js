@@ -3,25 +3,32 @@
  *
  * ⚠️  DRAFT TRANSLATION — NOT REVIEWED BY A NATIVE SPEAKER  ⚠️
  *
- * Written so the Japanese path can be tested end to end. Three strings are
- * load-bearing for the science and must be checked with Keisuke before any
- * participant sees them:
+ * Every string added or changed for the v4 design is listed, with its
+ * English, in text/ja/STRINGS_TO_CHECK.md for a native speaker to check.
+ * The most load-bearing for the science:
  *
- *   prompt.main     — the question the study turns on.
- *   practice.body   — establishes what the participant thinks they judge.
- *   catch.instruction — must be unmistakable; a confusing translation here
- *                       produces false exclusions.
+ *   prompt.main            — the question the study turns on (both groups).
+ *   anchoring.body         — fixes what every judgment is about.
+ *   grid.question_episode  — the episode-grid question (both groups).
+ *   catch.instruction      — must be unmistakable; a confusing translation
+ *                            here produces false exclusions.
  *
  * The framing rules in text/en/instructions.js apply equally here:
- *   - NAME the condition (離人感・現実感喪失), never describe its qualities.
- *     No equivalents of "unreal", "dreamlike", "as if behind glass".
+ *   - Never DESCRIBE the experience with visual words (no equivalents of
+ *     foggy, blurred, faded, dull, colourless, unreal, dreamlike, flat,
+ *     veiled, as if behind glass).
+ *   - Never mention an interview.
  *   - Anchor on SURROUNDINGS (周囲の風景), not on the self.
- *   - Acknowledge the adjustment without specifying colour or haze.
+ *   - Acknowledge the adjustment without specifying colour or contrast.
  *   - Nothing suggesting a detection task ("which looks more edited").
+ *   - Group-dependent strings are objects keyed participant / control.
  *
- * The clinical term should match the wording used in the CDS-29 the
- * participants already completed — worth checking against that instrument
- * rather than choosing a translation independently.
+ * The clinical term (現実感喪失) should match the wording used in the
+ * Japanese CDS-29 the participants complete — worth checking against that
+ * instrument rather than choosing a translation independently.
+ *
+ * PLACEHOLDERS to replace before recruiting: consent.* (whole text) and
+ * state.items (paste the published Japanese wording).
  *
  * Key structure must stay identical to the English file. validate.js
  * compares the two and refuses to start if they diverge.
@@ -31,9 +38,86 @@ var TEXT_JA = {
 
   lang_name: '日本語',
 
+  // --- 不完全なリンク（?group= がない） ---------------------------------
+  link: {
+    missing_title: 'リンクが不完全です',
+    missing_body:  '<p>このリンクは不完全です。案内メールに記載された' +
+                   'リンクをそのまま使用するか、実験者にご連絡ください。</p>',
+  },
+
+  // --- 同意（最初の画面） ---------------------------------------------------
+  // >>> 仮の文言（PLACEHOLDER）— 承認済みの文言ではありません。<<<
+  // 倫理審査で承認された文言に、このファイルと text/en/instructions.js
+  // の2か所だけで置き換えてください。[ ] の空欄がすべて埋まるまで、
+  // 本番の設定では validate.js が開始を拒否します。
+  consent: {
+    title: '研究参加への同意',
+    body:
+      '<p>人が周囲をどのように知覚するかについての研究へのご協力をお願いして' +
+      'います。本研究は[所属機関]の[研究者名]が実施しています。</p>' +
+      '<p><b>参加内容：</b>2枚1組の写真を見てどちらかを選び、その後いくつかの' +
+      '短い質問にお答えいただきます。所要時間は約[25]分です。</p>' +
+      '<p><b>リスク：</b>日常的なコンピュータの使用を超えるリスクは想定して' +
+      'いません。一部の質問では、普段とは異なる体験についてお尋ねします。' +
+      'いつでも参加を中止できます。</p>' +
+      '<p><b>利益：</b>参加による直接の利益はありません。[謝礼がある場合は' +
+      'その内容]</p>' +
+      '<p><b>データの扱い：</b>回答はお名前ではなく研究用IDのもとで保存され' +
+      'ます。結果は集団としてまとめるか、個人が特定できない形でのみ報告' +
+      'します。[保存期間とアクセスできる者][匿名化したデータを公開する' +
+      '可能性（例：OSF）]</p>' +
+      '<p>思い浮かべている体験がどのようなものかを、短く書いていただく欄が' +
+      'ある場合があります。この記入は任意で、回答とともに保存されます。' +
+      'ご自身や他の人の名前など、個人を特定できる情報は書かないで' +
+      'ください。</p>' +
+      '<p><b>自由意思による参加：</b>参加は自由意思によるものです。この' +
+      'ページを閉じることで、いつでも中止できます。回答は研究の最後に' +
+      'まとめて保存されるため、それより前にページを閉じた場合、回答は' +
+      '保存されません。ただし、お名前とメールアドレス（いずれも任意）を' +
+      '入力された場合は、最後まで終えなかったときでも、入力した時点で' +
+      '回答とは別に保存されます。[提出後のデータ撤回の方法]</p>' +
+      '<p><b>連絡先：</b>[研究者のメールアドレス]。参加者としての権利に' +
+      '関するご質問：[倫理委員会の連絡先]。[倫理審査承認番号]</p>',
+    checkbox:
+      '上記の説明を読みました。18歳以上であり、本研究への参加に同意します。',
+    button_agree:   '同意して次へ',
+    button_decline: '同意しない',
+
+    declined_title: 'ありがとうございました',
+    declined_body:
+      '<p>参加しないことを選択されました。何も保存されていません。</p>' +
+      '<p>このページを閉じていただいて構いません。</p>',
+  },
+
   // --- Prompts shown above the image pair -------------------------------
+  // グループによって異なる。
   prompt: {
-    main: 'エピソード中のあなたの周囲の風景の見え方に、より近いのはどちらですか？',
+    main: {
+      participant: 'そのエピソード中の周囲の風景の見え方に、より近いのはどちらですか？',
+      control:     '現実感喪失を体験している人にとっての周囲の風景の見え方に、より近いと思うのはどちらですか？',
+    },
+  },
+
+  // --- 課題の前に（練習の直前） -------------------------------------------
+  // body はグループによって異なる。記入欄は participant のみ。
+  anchoring: {
+    title: '課題の前に',
+    body: {
+      participant:
+        '<p>周囲がいつもと違って感じられた、具体的なエピソードを一つ' +
+        '思い浮かべてください。できれば、はっきりと覚えている最近のものを' +
+        '選んでください。</p>' +
+        '<p>この研究では、最後までそのエピソードについてお答えください。</p>',
+      control:
+        '<p>現実感喪失とは、周囲が奇妙に、あるいはよそよそしく感じられ、' +
+        'まるで自分が世界から切り離されているかのように感じられる体験です。</p>' +
+        '<p>この研究では、現実感喪失を体験している人には周囲がどのように' +
+        '見えるかを想像してお答えください。</p>',
+    },
+    note_label: 'どのエピソードか、簡単にお書きください（例：どこにいたか）',
+    note_hint:  '任意です。ご自身や他の人の名前など、個人を特定できる情報は' +
+                '書かないでください。',
+    button:     '次へ',
   },
 
   // --- Catch trials -----------------------------------------------------
@@ -48,13 +132,11 @@ var TEXT_JA = {
   practice: {
     title: '課題について',
     body:
-      '<p>先日、ご経験についてのインタビューにご協力いただきました。</p>' +
       '<p>各試行では、同じ場所を写した2枚の画像が並んで表示されます。' +
       '2枚は異なる方法で加工されています。</p>' +
-      '<p><b>離人感・現実感喪失のエピソード中</b>に、あなたの周囲の風景が' +
-      'どのように見えていたか、それにより近いほうを選んでください。</p>' +
-      '<p>正解・不正解はありません。記憶力を調べるものでもありません。' +
-      '最初の印象で選んでください。</p>' +
+      '<p>画像の上に質問が表示されます。その質問により当てはまるほうの' +
+      '画像を選んでください。</p>' +
+      '<p>正解・不正解はありません。最初の印象で選んでください。</p>' +
       '<p><b>&#8592;</b> と <b>&#8594;</b> の矢印キーで、左または右の画像を' +
       '選びます。</p>' +
       '<p>まず練習から始めます。</p>',
@@ -66,7 +148,7 @@ var TEXT_JA = {
     end_title: '練習は終了です',
     end_body:
       '<p>練習はこれで終わりです。</p>' +
-      '<p>本番も同じ方法で進みます。約140試行、15分程度かかります。' +
+      '<p>本番も同じ方法で進みます。205試行で、約10分かかります。' +
       '途中に短い休憩があります。</p>' +
       '<p><b>ときどき、画像のない画面が表示され</b>、特定の矢印キーを押すよう' +
       '指示されます。これは画面を読んでいるかを確認するためのものです。' +
@@ -75,7 +157,7 @@ var TEXT_JA = {
     end_hint: '<b>スペースキー</b>を押すと本番が始まります。',
   },
 
-  // --- Full screen and screen size --------------------------------------
+  // --- 全画面表示とウィンドウの確認（続行の選択肢はなし） -------------------
   screen: {
     fs_title:   '全画面表示',
     fs_body:
@@ -83,22 +165,18 @@ var TEXT_JA = {
       '<p>実験が終わるまで、全画面表示のままにしてください。</p>',
     fs_button:  '全画面表示にする',
 
-    small_title: '画面がこの実験には小さすぎます',
-    small_intro:
+    small_title: 'このウィンドウはこの実験には小さすぎます',
+    small_body:
       '<p>この実験では、すべての参加者に同じように見えるよう、2枚の画像を' +
-      '決まった大きさで並べて表示します。</p>',
-    small_cut:    '<p><b>この画面では、それぞれの画像の一部が切れてしまいます。</b></p>',
-    small_scaled: '<p>この画面では、画像が本来より小さく表示されます。</p>',
+      '決まった大きさで並べて表示します。このウィンドウでは、画像または' +
+      '質問の一部が切れてしまいます。</p>' +
+      '<p>ブラウザのウィンドウを大きくするか、より大きな画面のコンピュータを' +
+      '使用して、案内メールのリンクをもう一度開いてください。</p>' +
+      '<p>ブラウザが拡大表示になっている場合は、表示倍率を100%に戻す' +
+      '（Ctrl + 0、Macでは &#8984; + 0）だけで解決することがあります。</p>',
     small_size:
       '現在の表示領域は {W} &times; {H} ピクセルです。{MW} &times; {MH} ' +
       'ピクセル以上を推奨します。',
-    small_hopeless:
-      '<p>この画面は実験を行うには小さすぎます。より大きなコンピュータか' +
-      '外部モニターをご使用ください。</p>',
-    small_continue:
-      '<p>より大きな画面を使用できる場合は、このページを閉じて、その画面で' +
-      '最初からやり直してください。</p>',
-    small_hint: 'このまま続ける場合は<b>スペースキー</b>を押してください。',
   },
 
   // --- Calibration ------------------------------------------------------
@@ -111,6 +189,11 @@ var TEXT_JA = {
       '画面が暗いと、その違いが見えなくなってしまいます。</p>' +
       '<p>画面の明るさを<strong>最大</strong>にして、実験中はそのままに' +
       'してください。</p>',
+    brightness_filters:
+      '<p>可能であれば、この端末のナイトモード、ブルーライトカット、' +
+      'カラーフィルターなどの機能もオフにしてください。これらがオンに' +
+      'なっているかわからない場合や、オフにする方法がわからない場合は、' +
+      '気にせずそのまま進んでください。</p>',
     brightness_checkbox:
       '画面の明るさを最大に設定しました。',
 
@@ -183,28 +266,60 @@ var TEXT_JA = {
                   'このページを閉じていただいて構いません。',
   },
 
-  // --- Grid block -------------------------------------------------------
-  // 下書き — 要確認（未レビュー）
+  // --- Grid blocks ------------------------------------------------------
+  // 下書き — 要確認（未レビュー）。question_episode はグループによって異なる。
   grid: {
-    title:        'もう一つの課題',
-    instructions:
-      '<p>次の4つの画面では、いくつかの風景が、見た目の変化の度合いを変えて' +
-      '表示されます。それぞれの<b>列</b>が一つの度合いを示しています。</p>' +
-      '<p>エピソード中のあなたの周囲の風景の見え方に最も近い列を選んでください。' +
-      '列の中のどこをクリックしても選択できます。</p>' +
-      '<p>どの列も当てはまらない場合は、<b>「どれも当てはまらない」</b>を' +
-      '選んでください。</p>' +
-      '<p>「次へ」を押すまでは選択を変更できます。時間制限はありません。</p>',
+    episode: {
+      title: '列を選ぶ課題',
+      instructions:
+        '<p>次の4つの画面では、3つの風景が1行に1つずつ表示されます。' +
+        'それぞれの風景は横に並んで何度か表示され、表示ごとに加工の度合いが' +
+        '異なります。それぞれの<b>列</b>が一つの加工の度合いを示しています。</p>' +
+        '<p>各画面の上に表示される質問に、列を選んでお答えください。' +
+        '列の中のどこをクリックしても選択できます。</p>' +
+        '<p>当てはまる列がない場合は、<b>「どれも当てはまらない」</b>を' +
+        '選んでください。</p>' +
+        '<p>「次へ」を押すまでは選択を変更できます。時間制限はありません。</p>',
+    },
+    normal: {
+      title: 'もう一度、列を選ぶ課題',
+      instructions:
+        '<p>次の4つの画面も同じ方法で進みますが、表示される風景は異なります。</p>' +
+        '<p>今回は、<b>ふだん</b>のあなたの周囲の風景の見え方に最も近い列を' +
+        '選んでください。</p>' +
+        '<p>列の中のどこをクリックしても選択できます。「次へ」を押すまでは' +
+        '選択を変更できます。時間制限はありません。</p>',
+    },
     button_begin:    '開始',
-    question:        'エピソード中のあなたの周囲の風景の見え方に、最も近いのはどの列ですか？',
+    question_episode: {
+      participant: 'そのエピソード中の周囲の風景の見え方に、最も近いのはどの列ですか？',
+      control:     '現実感喪失を体験している人にとっての周囲の風景の見え方に、最も近いと思うのはどの列ですか？',
+    },
+    question_normal: 'ふだんのあなたの周囲の風景の見え方に、最も近いのはどの列ですか？',
     none:            'どれも当てはまらない',
     button_continue: '次へ',
     progress:        '{DONE} / {TOTAL} 画面',
-    // CONFIG.blocks.grid_none_text がオンの場合のみ使用。
     none_text_prompt:
-      '少なくとも一度「どれも当てはまらない」を選びました。エピソード中、' +
-      '周囲の風景はどのように違って見えましたか？ご自身の言葉でお書きください（任意）。',
+      'どのようなものであればより当てはまったか、ご自身の言葉でお書きください（任意）。',
     none_text_button: '次へ',
+  },
+
+  // --- 現在の状態（最後の任意ブロック） -----------------------------------
+  // >>> 仮の文言：項目2、13、19、29 の日本語版の正確な文言を label に
+  // 貼り付けてください。id と順序は変えないこと。<<<
+  // 尺度の両端は単語評価と同じ日本語を使用。
+  state: {
+    lead_in:     '今、この瞬間：',
+    anchor_low:  'まったく当てはまらない',
+    anchor_high: '非常によく当てはまる',
+    items: [
+      { id: 'q02', label: '[CDS 項目2：日本語版の文言を貼り付け]' },
+      { id: 'q13', label: '[CDS 項目13：日本語版の文言を貼り付け]' },
+      { id: 'q19', label: '[CDS 項目19：日本語版の文言を貼り付け]' },
+      { id: 'q29', label: '[CDS 項目29：日本語版の文言を貼り付け]' },
+    ],
+    button_submit: '次へ',
+    progress:      '{TOTAL} 項目中 {DONE} 項目に回答済み',
   },
 
   // --- Breaks -----------------------------------------------------------

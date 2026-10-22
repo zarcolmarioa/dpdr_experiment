@@ -12,8 +12,31 @@ var CONFIG = {
   // -----------------------------------------------------------------------
   experiment: {
     name:    'derealization_grid',
-    version: '0.1.0-smoketest',
+    version: '0.9.0-v4',
   },
+
+  // -----------------------------------------------------------------------
+  // Groups. Read from ?group= in the invitation link — never asked on
+  // screen. The group changes ONLY the wording of four things (anchoring
+  // screen, trial prompt, episode-grid question, word-rating instruction
+  // and question); everything else is identical. Each group-dependent
+  // string in text/en and text/ja is an object keyed by these names, and
+  // validate.js checks every one has both.
+  //
+  // A link with no group, or one not listed here, does not start: it shows
+  // the same "incomplete link" message as a missing participant ID.
+  //
+  // Stamped on every row as `group`.
+  //
+  // The link may also carry ?idate=YYYY-MM-DD, the date of the
+  // participant's interview, added by the researcher who schedules the
+  // interviews. It is never asked on screen. A valid date is stamped on
+  // every row as `interview_date`; a missing or invalid one leaves it empty
+  // (and logs a console warning) — the session still runs.
+  //
+  // A full link:  .../?pid=R_xxxxxxxxxxxxxxx&group=participant&idate=2026-11-03
+  // -----------------------------------------------------------------------
+  groups: ['participant', 'control'],
 
   // -----------------------------------------------------------------------
   // Hosting platform. Controls how data is saved.
@@ -143,18 +166,27 @@ var CONFIG = {
   // could only ever end in success and would discriminate nothing.
   //
   // `sequence` is applied in order to the catch trials as they appear in
-  // trial_list.json, so assignment is deterministic and reproducible.
-  // Balanced 3 up / 3 down: an all-same target would be learnable, which is
-  // the flaw in the correct_response column of trial_list.json (all six are
-  // 'right'). That column is ignored for catch scoring.
+  // trial_list.json, so assignment is deterministic and reproducible. The
+  // trial list carries no expected response (no correct_response column):
+  // the target lives here, with the instruction text.
   //
-  // Chance of passing by mashing arrows is 1/4 per trial, so P(4+ of 6) is
-  // about 4%. Mashing left/right — the most likely disengaged behaviour —
-  // fails every time.
+  // Ten targets for the ten catch rows of the v4 list: 5 up, 5 down, in a
+  // fixed mixed order with never more than two identical targets in a row,
+  // so the target cannot be learnt. validate.js checks the length equals
+  // the number of catch rows, the balance, and the run length.
+  //
+  // Chance of passing by mashing arrows is 1/4 per trial, so P(7+ of 10)
+  // is under 0.4%. Mashing left/right — the most likely disengaged
+  // behaviour — fails every time.
+  //
+  // `mode` is what this code implements: 'no_images'. Every catch row of
+  // trial_list.json carries a `catch_mode`; validate.js refuses to start if
+  // any row expects a different kind of catch trial.
   // -----------------------------------------------------------------------
   catch_trials: {
-    sequence:   ['ArrowUp', 'ArrowDown', 'ArrowDown',
-                 'ArrowUp', 'ArrowDown', 'ArrowUp'],
+    mode:       'no_images',
+    sequence:   ['ArrowUp',   'ArrowDown', 'ArrowDown', 'ArrowUp',   'ArrowDown',
+                 'ArrowUp',   'ArrowUp',   'ArrowDown', 'ArrowUp',   'ArrowDown'],
     lockout_ms: 750,   // keys dead for this long, so a carried-over
                        // reflex press from the previous trial cannot land
   },
@@ -163,20 +195,31 @@ var CONFIG = {
   // Display.
   //
   // image_px is the on-screen size of each stimulus. The real images are
-  // 512 x 512, so 512 means 1:1 with no resampling. min_viewport is derived
-  // from it, so the two cannot drift apart.
+  // 512 x 512, so 512 means 1:1 with no resampling. min_width/min_height
+  // are derived from it, so the two cannot drift apart.
+  //
+  // THE WINDOW CHECK IS A HARD STOP. Right after full screen, the real trial
+  // layout — the question in the participant's language and group, above
+  // two image_px panels — is drawn invisibly and measured. If any part of
+  // it would be cut off, by width or by height, the session stops with a
+  // message asking the participant to enlarge the window or use a larger
+  // screen and reopen the link. There is no "continue anyway". Nothing is
+  // uploaded for a stopped session (the check runs before the ID screen).
+  //
+  // min_width/min_height are only the RECOMMENDED size, recorded as
+  // viewport_ok; the stop is decided by the measurement, not by them.
   // -----------------------------------------------------------------------
   display: {
     image_px:      512,
     gap_px:        32,
-    min_width:     512 * 2 + 32 + 64,   // 1120
-    min_height:    512 + 168,           // 680
-    hard_min_width: 800,                // below this, no override offered
+    min_width:     512 * 2 + 32 + 64,   // 1120, recommended
+    min_height:    512 + 168,           // 680, recommended
 
-    // false (default): every participant sees panels at exactly image_px.
-    //   Removes between-participant variation in the physical size of the
-    //   manipulation. On a viewport too small to fit them, the panels are
-    //   CUT OFF rather than shrunk — which is why the viewport gate matters.
+    // false (default, and required for the registered design): every
+    //   participant sees panels at exactly image_px. Removes
+    //   between-participant variation in the physical size of the
+    //   manipulation. A window too small to show them whole is stopped by
+    //   the window check above.
     // true: panels shrink to fit. Nothing is cut off, but display size
     //   varies between participants and must be treated as a covariate.
     allow_scaling: false,
@@ -191,12 +234,22 @@ var CONFIG = {
   // -----------------------------------------------------------------------
   // Stimulus sets.
   //
-  // Each set lives in its own folder under sets_dir and holds all three
-  // things it needs:
+  // Each set lives in its own folder under sets_dir and holds everything
+  // it needs:
   //
   //     data/sets/<set>/trial_list.json
   //     data/sets/<set>/preload.json
   //     data/sets/<set>/stimuli/*.png
+  //     data/sets/<set>/grid/{grid_trials.json, preload.json, stimuli/}
+  //
+  // `v4` is the preregistered set: 211 pair trials (180 analysed) and the
+  // two-block grid package. Its folders are FROZEN copies of
+  // drl2drv_updated/data_trials — verified against the frozen checksums —
+  // and must never be edited, re-encoded, resized or renamed.
+  //
+  // The older sets (lum_p05, contrast_local) are left on disk for reference
+  // but are no longer in available_sets: their formats are not supported by
+  // the current loader and validator, and ?set= cannot select them.
   //
   // They are kept together because a trial list and its images are a
   // matched pair — a list referencing the other set's filenames would fail
@@ -214,52 +267,84 @@ var CONFIG = {
   // what makes the data interpretable.
   // -----------------------------------------------------------------------
   data: {
-    set:            'contrast_local',
-    available_sets: ['lum_p05', 'contrast_local'],
+    set:            'v4',
+    available_sets: ['v4'],
     sets_dir:       'data/sets/',
-
-    // Sets that have a grid block, in data/sets/<set>/grid/. For any set
-    // not listed the grid block is skipped. To add one later, put its
-    // grid_trials.json, preload.json and stimuli/ in place and add it here.
-    grid_sets:      ['contrast_local'],
   },
 
   // -----------------------------------------------------------------------
-  // Which blocks run. Each can be switched off independently, so a single
-  // phase can be tested without sitting through the whole session.
+  // Which blocks run, in SESSION ORDER. Each can be switched off
+  // independently, so a single phase can be tested without sitting through
+  // the whole session; dev.html lists every switch.
+  //
+  // The session, the same for both groups:
+  //    1. consent                     blocks.consent
+  //    2. full screen + window check  calibration.fullscreen / screen_check
+  //    3. participant ID              participant.collect_*
+  //    4. brightness                  calibration.brightness
+  //    5. gamma matching              calibration.gamma
+  //    6. anchoring                   blocks.anchoring
+  //    7. practice                    blocks.practice
+  //    8. pair trials                 blocks.main
+  //    9. episode grid block          blocks.grid_episode
+  //   10. word ratings                blocks.words
+  //   11. normal-appearance grid      blocks.grid_normal
+  //   12. state items (optional)      blocks.state
+  //   13. save, 14. completion screen
+  //
+  // CONSENT IS REQUIRED for a real session. index.html refuses to start
+  // with blocks.consent off (validate.js); only dev.html can run without it.
   // -----------------------------------------------------------------------
   blocks: {
-    size_check: false,  // developer screen showing the measured panel size.
-                        // Not for participants; the 'Screen & size check'
-                        // dev preset switches it on.
-    words:      true,   // descriptor ratings — MUST run before the images
-    practice:   true,
-    main:       true,
-    mock:       false,  // six placeholder trials; superseded by 'main'
-    grid:       true,   // grid block after the pairs — only runs for sets
-                        // listed in data.grid_sets
-    grid_none_text: false,  // free-text question after the grid if "None
-                            // of these" was chosen. Built, switched OFF.
+    consent:      true,   // first screen; declining ends the session with
+                          // nothing uploaded
+    size_check:   false,  // developer screen showing the measured panel
+                          // size. Not for participants; the 'Screen & size
+                          // check' dev preset switches it on.
+    anchoring:    true,   // bring one episode to mind (participants) /
+                          // what derealization is (controls)
+    practice:     true,
+    main:         true,
+    mock:         false,  // six placeholder trials; superseded by 'main'
+    grid_episode: true,   // grid block after the pair trials, with "None
+                          // of these"
+    grid_none_text: true, // optional free text right after a grid screen
+                          // answered "None of these". Applies only where
+                          // the grid package allows it (the episode block).
+    words:        true,   // word ratings — AFTER the episode grid
+    grid_normal:  true,   // grid block after the word ratings, no "None"
+    state:        true,   // four state items at the end (optional block)
   },
 
   // -----------------------------------------------------------------------
-  // Grid block layout. The cell size is computed from the viewport (six
-  // columns of 512 px fit no laptop), capped at max_cell_px, and recorded
-  // on every grid row as grid_cell_px.
+  // Grid block layout. The cell size is computed from the window (six
+  // columns of 512 px fit no laptop), once per block, for the widest screen
+  // in the package:
+  //
+  //   byWidth  = (innerWidth  - page_side_px - (cols-1)*col_gap_px) / cols
+  //              - cell_chrome_px
+  //   byHeight = (innerHeight - chrome_px    - (rows-1)*row_gap_px) / rows
+  //   cell     = max(min_cell_px, floor(min(byWidth, byHeight, max_cell_px)))
+  //
+  // These are the constants of interface_spec.md, and the grid package
+  // ships them as `layout`. validate.js refuses to start if the two differ.
+  // The computed size is recorded on every grid row as cell_px.
   // -----------------------------------------------------------------------
   grid: {
-    max_cell_px: 240,
-    min_cell_px: 100,
-    row_gap_px:  6,     // between scenes within a column
-    col_gap_px:  22,    // between columns — wider, so columns read as units
-    chrome_px:   190,   // vertical space kept for question and buttons
+    max_cell_px:    240,
+    min_cell_px:    100,
+    row_gap_px:     6,    // between scenes within a column
+    col_gap_px:     22,   // between columns — wider, so columns read as units
+    chrome_px:      190,  // vertical space kept for question and buttons
+    page_side_px:   48,   // horizontal margin of the page
+    cell_chrome_px: 14,   // per column: 2 x (3 px border + 4 px padding)
   },
 
   // -----------------------------------------------------------------------
   // Limits. For quick testing only — leave at 0 for real sessions.
   //
   // max_trials truncates the main block to its first N trials. Useful for
-  // confirming an upload reaches OSF without sitting through 137 trials.
+  // confirming an upload reaches OSF without sitting through 205 trials.
   //
   // A truncated session is NOT valid data: it will be missing catch and
   // consistency trials, and the predictor spread the analysis depends on.
@@ -279,7 +364,8 @@ var CONFIG = {
   // -----------------------------------------------------------------------
   calibration: {
     fullscreen:   true,
-    screen_check: true,   // soft gate + override on small viewports
+    screen_check: true,   // window check: HARD STOP if the trial layout
+                          // would be cut off (see display, above)
 
     // Both matter more here than in most experiments, because the
     // manipulations ARE saturation and shadow lifting — see the module
@@ -298,7 +384,8 @@ var CONFIG = {
   timing: {
     fixation_ms: 500,
     blank_ms:    250,
-    break_every: 35,   // break after every N main trials; 0 disables
+    break_every: 41,   // break after every N main trials; 0 disables.
+                       // 205 main trials / 41 = 5 equal parts, 4 breaks.
 
     // Practice feedback: the chosen image is outlined for this long, on
     // the first N practice trials only. The remaining practice trials run

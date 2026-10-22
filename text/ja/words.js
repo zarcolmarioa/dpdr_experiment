@@ -1,46 +1,50 @@
 /* =========================================================================
- * text/ja/words.js — the descriptors rated before the image task, Japanese.
+ * text/ja/words.js — the ten words rated in the word-rating task, Japanese.
  *
  * ⚠️  DRAFT TRANSLATION — NOT REVIEWED BY A NATIVE SPEAKER  ⚠️
+ * (the ten word labels are the registered Japanese; the instruction and
+ * question are drafts, listed in text/ja/STRINGS_TO_CHECK.md)
  *
- * This file needs more care than the others. The word ratings are the
- * PREDICTOR in the analysis, so a translation that shifts a word's meaning
- * shifts what the predictor measures.
- *
- * The two targets matter most:
- *
- *   foggy    — must be about VISUAL haze or mistiness, not mental fogginess
- *              or confusion. Several natural Japanese renderings drift
- *              toward "頭がぼんやりする" (mentally hazy), which would make
- *              the word predict something other than the image dimension.
- *
- *   lifeless — must be about the WORLD looking drained or inanimate, not
- *              about the participant feeling lifeless. The whole design
- *              depends on the judgment being about surroundings rather than
- *              the self.
- *
- * The fillers only need to be plausible, unrelated to colour or clarity,
- * and spread across visual and non-visual qualities.
+ * The ratings are taken after the pair trials and the episode grid block,
+ * about the same episode (participants) or the imagined experience
+ * (controls). The two TARGETS are foggy (霞がかった) and faded (色あせた),
+ * promoted to rating_foggy and rating_faded on every row.
  *
  * `id` values must match text/en/words.js exactly — they are the output
- * column names and validate.js checks the two lists agree.
+ * column names, and validate.js checks both lists against the registered
+ * ten. Only `label` is participant-facing.
+ *
+ * GROUP-DEPENDENT STRINGS: `instruction` and `question_short`.
  * ========================================================================= */
 
 var WORDS_JA = {
 
-  title: 'ご経験について',
-  instruction:
-    '<p>本番の課題の前に、ご自身の経験をどのように表現されるかを' +
-    'お聞きします。</p>' +
-    '<p>次の画面に言葉のリストが表示されます。<b>離人感・現実感喪失の' +
-    'エピソード</b>を思い浮かべ、それぞれの言葉が、あなたの周囲の風景の' +
-    '<b>見え方</b>をどの程度よく表しているか評価してください。</p>' +
-    '<p>まったく当てはまらない言葉もあります。それで構いませんので、' +
-    'すべての言葉について回答してください。</p>',
+  title: '言葉の評価',
+  instruction: {
+    participant:
+      '<p>次の画面に言葉のリストが表示されます。</p>' +
+      '<p><b>そのエピソード中、それぞれの言葉は、あなたの周囲の風景の' +
+      '見え方をどの程度よく表していますか。</b></p>' +
+      '<p>すべての言葉について、0（まったく当てはまらない）から6（非常に' +
+      'よく当てはまる）で評価してください。まったく当てはまらない言葉も' +
+      'あります。それで構いませんので、すべての言葉について回答して' +
+      'ください。</p>',
+    control:
+      '<p>次の画面に言葉のリストが表示されます。</p>' +
+      '<p><b>それぞれの言葉は、現実感喪失を体験している人にとっての周囲の' +
+      '風景の見え方を、どの程度よく表していると思いますか。</b></p>' +
+      '<p>すべての言葉について、0（まったく当てはまらない）から6（非常に' +
+      'よく当てはまる）で評価してください。まったく当てはまらない言葉も' +
+      'あります。それで構いませんので、すべての言葉について回答して' +
+      'ください。</p>',
+  },
 
-  question_short:
-    'エピソード中、それぞれの言葉は周囲の風景の<b>見え方</b>を' +
-    'どの程度よく表していますか。',
+  question_short: {
+    participant: 'そのエピソード中、それぞれの言葉は、あなたの周囲の風景の' +
+                 '見え方をどの程度よく表していますか。',
+    control:     'それぞれの言葉は、現実感喪失を体験している人にとっての' +
+                 '周囲の風景の見え方を、どの程度よく表していると思いますか。',
+  },
 
   button_begin:    '次へ',
   button_submit:   '次へ',
@@ -50,15 +54,15 @@ var WORDS_JA = {
   anchor_high: '非常によく当てはまる',
 
   items: [
-    { id: 'foggy',      label: '霞がかった' },      // TARGET — visual haze
-    { id: 'lifeless',   label: '生気のない' },      // TARGET — world drained
-    { id: 'crowded',    label: '混み合った' },
-    { id: 'echoing',    label: '反響するような' },
-    { id: 'still',      label: '静止した' },
-    { id: 'jagged',     label: 'ぎざぎざした' },
-    { id: 'heavy',      label: '重い' },
-    { id: 'warm',       label: '暖かい' },
-    { id: 'rushed',     label: 'せわしない' },
-    { id: 'cluttered',  label: '雑然とした' },
+    { id: 'foggy',          label: '霞がかった' },            // TARGET
+    { id: 'faded',          label: '色あせた' },              // TARGET
+    { id: 'veiled',         label: 'ベールがかかったような' },
+    { id: 'lifeless',       label: '生気のない' },
+    { id: 'unreal',         label: '現実味のない' },
+    { id: 'dreamlike',      label: '夢のような' },
+    { id: 'distant',        label: '遠く感じる' },
+    { id: 'like_a_picture', label: '絵のような' },
+    { id: 'oppressive',     label: '重苦しい' },
+    { id: 'threatening',    label: '不穏な' },
   ],
 };

@@ -644,3 +644,107 @@ body.allow-scaling .stim-panel {
 
 /* Button row under a card (html-button-response puts it outside). */
 #jspsych-html-button-response-btngroup { margin-top: 1.2rem; }
+
+/* --- Window check -------------------------------------------------------- */
+
+/* The real trial layout, drawn for a moment to be measured, never seen. */
+.fit-probe { visibility: hidden; }
+
+/* --- Consent ------------------------------------------------------------- */
+
+.consent-card { max-width: 720px; }
+
+/* The consent text scrolls INSIDE the card, so the checkbox and both
+   buttons are always on screen: a card taller than the window would be cut
+   off at the top by the centred layout, with no way to scroll to it. */
+.consent-text {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: .6rem;
+  border-bottom: 1px solid #ddd;
+}
+.consent-text p { margin: .6rem 0; }
+
+.consent-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn-secondary {
+  color: #333;
+  background: #fff;
+  border-color: #999;
+  cursor: pointer;
+}
+
+/* --- Brightness: viewing-conditions note --------------------------------- */
+
+.calib-note {
+  font-size: .92rem;
+  color: #444;
+  border-left: 3px solid #c8c8c8;
+  padding: .1rem 0 .1rem .9rem;
+  margin: 1rem 0 0;
+}
+.calib-note p { margin: .4rem 0; }
+
+/* --- Anchoring and free-text boxes --------------------------------------- */
+
+.anchoring-card { max-width: 680px; }
+
+.note-field {
+  display: block;
+  font-size: .95rem;
+  color: #333;
+  margin: 1.2rem 0 .4rem;
+  text-align: left;
+}
+
+.note-field textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: .4rem;
+  padding: .45rem .6rem;
+  font: inherit;
+  font-size: 1rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.note-field .field-hint {
+  display: block;
+  font-size: .8rem;
+  color: #666;
+  margin-top: .3rem;
+}
+
+.grid-text-card { max-width: 640px; }
+
+/* --- State items: the word-rating grid with longer item text ------------- */
+
+.wr-state { width: min(980px, 94vw); }
+.wr-state .wr-row { grid-template-columns: 48% 52%; }
+.wr-state .wr-word {
+  font-weight: 500;
+  text-align: left;
+  padding: .45rem 1.1rem .45rem .2rem;
+  line-height: 1.35;
+}
+.wr-state .wr-question { font-size: 1.05rem; margin-bottom: .7rem; }
+
+/* --- Dev menu additions --------------------------------------------------- */
+
+.dev-preset[disabled] { opacity: .45; cursor: not-allowed; }
+.dev-missing { color: #b3261e; }
+.dev-custom h2 { font-size: 1.05rem; margin: 0 0 .3rem; }
+.dev-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: .2rem 1rem;
+  margin: .6rem 0 .8rem;
+  font-size: .85rem;
+}
+.dev-custom button[disabled] { opacity: .45; cursor: not-allowed; }

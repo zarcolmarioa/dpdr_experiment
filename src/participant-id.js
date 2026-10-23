@@ -10,11 +10,21 @@
  * Each field can be switched off in CONFIG.participant. If all three are
  * off, the screen is skipped.
  *
- * THE ID links the session to the participant's CDS-29 score, so a session
- * cannot continue without a valid one. It is checked as it is typed: an
- * invalid ID blocks the Continue button with a message in the participant's
- * language. Test IDs (CONFIG.participant.superuser_ids) are accepted too,
- * and flag every row is_test = true.
+ * THE ID links the session to the participant's CDS-29 score. It is
+ * checked as it is typed: an invalid ID blocks the Continue button with a
+ * message in the participant's language. Test IDs
+ * (CONFIG.participant.superuser_ids) are accepted too, and flag every row
+ * is_test = true.
+ *
+ * WITHOUT A VALID ?pid= IN THE LINK (and with allow_manual_id on and both
+ * name and email collected) the participant must give EITHER a valid ID
+ * OR both a name and a valid email address. The screen says giving all
+ * three is best. A typed ID that is not valid still blocks Continue; to go
+ * on without an ID the field must be left empty. Such a session gets a
+ * unique ID, CONFIG.participant.no_id_prefix + '_' + 8 random characters,
+ * used in both the response file and the contact file so they still link;
+ * id_source = 'no_id'. With a valid ?pid= the ID is required as before and
+ * name and email stay optional.
  *
  * NAME AND EMAIL are handled with care:
  *   - they are REMOVED from the jsPsych data as soon as the screen ends, so
@@ -99,13 +109,41 @@ var ParticipantID = (function () {
   // Anonymous ID, used only when CONFIG.participant.collect_id is false.
   // Such sessions cannot be linked to a CDS-29 score — validate.js warns.
   // -----------------------------------------------------------------------
-  function _anonymousId() {
-    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    var out = 'ANON_';
-    for (var i = 0; i < 8; i++) {
-      out += chars.charAt(Math.floor(Math.random() * chars.length));
+  // No look-alike characters (no 0/O, no 1/I), so an ID can be read out or
+  // copied by hand without mistakes.
+  var ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function _randomPart(n) {
+    var out = '';
+    var buf = null;
+    if (window.crypto && window.crypto.getRandomValues) {
+      buf = new Uint32Array(n);
+      window.crypto.getRandomValues(buf);
+    }
+    for (var i = 0; i < n; i++) {
+      var r = buf ? buf[i] / 4294967296 : Math.random();
+      out += ID_CHARS.charAt(Math.floor(r * ID_CHARS.length));
     }
     return out;
+  }
+
+  function _anonymousId() {
+    return 'ANON_' + _randomPart(8);
+  }
+
+  // -----------------------------------------------------------------------
+  // ID for a participant who gave a name and email but no ID, e.g.
+  // NOID_DRCHAIN26_7K3QX9PA. Unique per session; 32^8 (~10^12) values.
+  // -----------------------------------------------------------------------
+  function _noId() {
+    var prefix = (CONFIG.participant && CONFIG.participant.no_id_prefix) || 'NOID';
+    return prefix + '_' + _randomPart(8);
+  }
+
+  // A plausible email address — the same rule as the browser's own
+  // type="email" check, so the two cannot disagree.
+  function _emailOK(el) {
+    return !!(el && el.value.trim() && el.validity && el.validity.valid);
   }
 
   function _escapeHTML(s) {
@@ -223,69 +261,107 @@ var ParticipantID = (function () {
     }
 
     // --- The form ----------------------------------------------------------
+    // No valid ID in the link: the participant may give a name AND email
+    // instead of an ID (needs both fields, and typed entry allowed).
+    var contactInstead = askId && !urlValid && !!P.allow_manual_id &&
+                         askName && askEmail;
+
     var fields = '<div class="contact-fields">';
     if (askId) {
       // Read-only when the link supplied a valid ID and typing is not
       // allowed; otherwise editable, pre-filled from the link if present.
+      // Validity is set by check() below, not by `required`, because
+      // without a link ID an empty field can be valid.
       var locked = urlValid && !P.allow_manual_id;
       fields +=
         '<label>' + T.id_label +
-        '<input type="text" name="pid" id="pid-input" required ' +
+        '<input type="text" name="pid" id="pid-input" ' +
         'autocomplete="off" autocapitalize="off" spellcheck="false" ' +
         (locked ? 'readonly ' : '') +
         'value="' + (urlId ? _escapeHTML(urlId) : '') + '">' +
         '<span class="field-hint">' + T.id_hint + '</span></label>';
     }
     if (askName) {
-      fields += '<label>' + T.name_label +
-                '<input type="text" name="contact_name" autocomplete="name" ' +
-                'maxlength="120"></label>';
+      fields += '<label>' + (contactInstead ? T.name_label_plain : T.name_label) +
+                '<input type="text" name="contact_name" id="contact-name" ' +
+                'autocomplete="name" maxlength="120"></label>';
     }
     if (askEmail) {
-      // type="email": the browser rejects a malformed address on submit,
-      // but an EMPTY field is allowed, since it is optional.
-      fields += '<label>' + T.email_label +
-                '<input type="email" name="contact_email" autocomplete="email" ' +
-                'maxlength="200"></label>';
+      // type="email": the browser rejects a malformed address on submit.
+      // An EMPTY field is allowed by the browser; whether it may be empty
+      // is decided by check() below.
+      fields += '<label>' + (contactInstead ? T.email_label_plain : T.email_label) +
+                '<input type="email" name="contact_email" id="contact-email" ' +
+                'autocomplete="email" maxlength="200"></label>';
     }
     fields += '</div>';
 
     var formNode = {
       type: jsPsychSurveyHtmlForm,
       preamble: '<div class="card contact-card"><h2>' + T.title + '</h2>' +
-                (askId ? T.body : '') +
-                ((askName || askEmail) ? T.optional_note : '') + '</div>',
+                (contactInstead
+                  ? T.body_no_pid
+                  : ((askId ? T.body : '') +
+                     ((askName || askEmail) ? T.optional_note : ''))) +
+                '</div>',
       html: fields,
       button_label: T.button,
       autofocus: askId ? 'pid-input' : '',
       data: { block: 'participant_id' },
 
-      // Check the ID as it is typed. An invalid ID makes the browser block
-      // Continue and show T.invalid next to the field, in the participant's
-      // language — so a typo is caught before the session starts.
+      // Check as it is typed. The browser blocks Continue and shows the
+      // message next to the ID field, in the participant's language.
+      //   - a typed ID that is not valid   -> T.invalid (always)
+      //   - empty ID, link had a valid ID  -> T.invalid (ID required)
+      //   - empty ID, no link ID           -> valid only with a name AND a
+      //                                       valid email, else
+      //                                       T.need_id_or_contact
       on_load: function () {
         var input = document.getElementById('pid-input');
         if (!input) return;
+        var nameEl  = document.getElementById('contact-name');
+        var emailEl = document.getElementById('contact-email');
         function check() {
-          input.setCustomValidity(isValid(normalise(input.value)) ? '' : T.invalid);
+          var v = normalise(input.value);
+          var msg = '';
+          if (v) {
+            if (!isValid(v)) msg = T.invalid;
+          } else if (!contactInstead) {
+            msg = T.invalid;
+          } else if (!(nameEl && nameEl.value.trim() && _emailOK(emailEl))) {
+            msg = T.need_id_or_contact;
+          }
+          input.setCustomValidity(msg);
         }
-        input.addEventListener('input', check);
+        [input, nameEl, emailEl].forEach(function (el) {
+          if (el) el.addEventListener('input', check);
+        });
         check();
       },
 
       on_finish: function (data) {
         var r = data.response || {};
 
+        var name  = askName  ? String(r.contact_name  || '').trim() : '';
+        var email = askEmail ? String(r.contact_email || '').trim() : '';
+
         if (askId) {
           var candidate = normalise(r.pid || '');
           data.id_entered = candidate;
           data.id_valid   = isValid(candidate);
-          data.id_source  = (urlId && candidate === urlId) ? 'url' : 'typed';
-          if (data.id_valid) accept(candidate);
+          if (data.id_valid) {
+            data.id_source = (urlId && candidate === urlId) ? 'url' : 'typed';
+            accept(candidate);
+          } else if (!candidate && contactInstead && name && email) {
+            // No ID: a unique generated one, shared with the contact file.
+            data.id_source = 'no_id';
+            accept(_noId());
+            console.log('[ID] No ID given — session ID ' + _id +
+                        ' (linked to the person through the contact file).');
+          } else {
+            data.id_source = (urlId && candidate === urlId) ? 'url' : 'typed';
+          }
         }
-
-        var name  = askName  ? String(r.contact_name  || '').trim() : '';
-        var email = askEmail ? String(r.contact_email || '').trim() : '';
 
         // REMOVE everything typed from the response data, so name and email
         // can never reach the OSF response file. (The ID is kept above as

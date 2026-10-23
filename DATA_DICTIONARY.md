@@ -24,7 +24,7 @@ e.g. R_9rJJWk01c767jE8_v4_2026-11-03T05-10-40.csv
 The timestamp is UTC in ISO 8601 format, with `:` and `.` replaced by `-`,
 taken at the moment of upload.
 
-A full session produces **660 rows and about 120 columns** (one or two more
+A full session produces **660 rows and about 125 columns** (one or two more
 rows if ID entry needed a retry).
 
 **Nothing is saved until the very end.** The upload happens after the last
@@ -91,7 +91,7 @@ participant sees them. The `block` column is how you find each step's rows.
 | — | ID stamp, background download start | *(empty)* | 2 | — |
 | 6 | Brightness (+ viewing-conditions note) | `calibration_brightness` | 1 | `brightness_confirmed` (session-level). The note about night mode / colour filters is not confirmed or recorded |
 | 7 | Gamma match | *(empty)* | 3 | `gamma_*` (session-level, §5) |
-| 8 | Anchoring | `anchoring` | 1 | `episode_note` (participants, §6) |
+| 8 | Anchoring | `anchoring` | 1 | `episode_*` answers (participants, §6) |
 | 9 | Image download gate | `preload` | 1 | `success`, `failed_images` |
 | 10 | Practice | `practice_intro`, `pairs`, `fixation`, `blank`, `practice_feedback`, `practice_end` | 1 + 6 + 6 + 6 + 2 + 1 | practice responses, `analysed = False` |
 | 11 | Pair trials | `pairs`, `fixation`, `blank`, `catch_lockout`, `break` | 205 + 195 + 195 + 10 + 4 | **the data** (§7) |
@@ -142,18 +142,27 @@ These repeat identically on every row, so read them from any row with
 
 | column | example | notes |
 |---|---|---|
-| `participant_id` | `R_9rJJWk01c767jE8` | links to the CDS-29 record. Case-sensitive |
+| `participant_id` | `R_9rJJWk01c767jE8` | links to the CDS-29 record. Case-sensitive. **`NOID_DRCHAIN26_…`** (prefix + 8 random characters) when the participant gave a name and email but no ID — see below |
 | `group` | `participant` / `control` | from `?group=` in the link. A link without a valid group does not start, so this is never empty in a saved file |
 | `interview_date` | `2026-11-03` | from `?idate=YYYY-MM-DD` in the link. **Empty** if the link had none, or an invalid date |
 | `consent_given` | `True` | always `True` in a saved file (declining saves nothing). Empty only for dev sessions run with the consent screen off |
 | `is_test` | `False` | `True` when a test ID was used: `Z_21121989` (yours) or `CHAIN_2026` (colleagues) |
 | `is_dev` | `False` | `True` when the session started from `dev.html`, or ran with a trial limit |
-| `id_source` | `url` / `typed` | on the `participant_id` row only. `url` = came from the link unchanged |
+| `id_source` | `url` / `typed` / `no_id` | on the `participant_id` row only. `url` = came from the link unchanged; `no_id` = no ID given, name and email instead |
 | `id_entered`, `id_valid` | | on the `participant_id` row only |
 | `contact_name_given`, `contact_email_given` | `True` / `False` | whether the participant filled in the optional field |
 | `contact_saved` | `True` / `False` / empty | whether DataPipe received the separate contact file. Empty if nothing was given |
 
 **Exclude any session where `is_test` or `is_dev` is `True`.**
+
+**Sessions without an ID.** When the link carried no valid ID, the
+participant had to give either an ID or both a name and an email address.
+Those who gave only a name and email have `participant_id` =
+`NOID_DRCHAIN26_` + 8 random characters (unique per session) and
+`id_source = no_id`. They are real sessions (`is_test = False`). The same
+`participant_id` is in the contact file (§15), which is the **only** way
+to tell who they are — so check `contact_saved` on these sessions. To find
+them: `d.participant_id.str.startswith('NOID_')`.
 
 ### Experiment
 
@@ -207,17 +216,30 @@ ratings), so a participant can be modelled without joining in another table.
 ## 6. The anchoring screen (`block == 'anchoring'`)
 
 One row. The wording is one of the four group-dependent texts:
-participants bring one specific episode to mind and answer about it
-throughout; controls read what derealization is and imagine how the
-surroundings might look to someone experiencing it.
+participants bring to mind their **most recent episode that they remember
+clearly** and answer about it throughout; controls read what
+derealization is and imagine how the surroundings might look to someone
+experiencing it.
 
-| column | meaning |
+Participants then see up to four questions about that episode, each
+switchable in `config.js` (`CONFIG.anchoring.questions`). **None is
+required.** Controls see no questions; all these columns are empty for
+them. On this row only.
+
+| column | values |
 |---|---|
-| `episode_note` | **participants:** the optional "which episode is it?" text, trimmed; empty if left blank. **Controls:** empty (no box shown). On this row only |
+| `episode_when` | `past_week`, `past_month`, `1_6_months`, `6_12_months`, `over_year`, `other`, `prefer_not`; empty = unanswered / switched off |
+| `episode_when_other` | the text typed next to "Other:" when `episode_when = other` (possibly empty); empty otherwise |
+| `episode_duration` | `seconds`, `minutes` (a few minutes), `up_to_hour`, `hours` (several hours), `day_or_longer`, `other`, `prefer_not`; empty |
+| `episode_duration_other` | as for `_when_other` |
+| `episode_where` | `home`, `work_school`, `indoor_other` (another indoor place), `outdoors`, `travelling`, `other`, `prefer_not`; empty |
+| `episode_where_other` | as for `_when_other` |
+| `episode_clarity` | how clearly they remember it: `0` (not at all clearly) … `6` (very clearly), `prefer_not`; empty |
 
-`episode_note` is free text typed by the participant and is stored **with
-the responses**. Participants are asked not to include names or other
-identifying details, but check it before any data are shared.
+The codes are fixed (the labels on screen are in `text/<lang>/
+instructions.js`). Anything typed under "Other" is free text stored **with
+the responses**; the consent text asks participants not to include names
+or other identifying details, but check it before any data are shared.
 
 ---
 
@@ -339,7 +361,7 @@ exact — check it with `set_code`.
 | `chosen_display_column` | 1-based position of the chosen column **as displayed**. Empty for "none". Do not analyse this directly |
 | `chosen_level_index` | **the level chosen**: the column's `level_index` — 0 is the scene's own original, negative is more than normal, positive is less. Same meaning on forward and reversed screens. Empty for "none" |
 | `chose_none` | `True` when "None of these" was used (episode block only; always `False` in the normal block) |
-| `free_text` | the optional free text typed right after choosing "None of these" (possibly empty); empty otherwise |
+| `none_detail` | the answer to the optional follow-up after "None of these", "Which comes closest?": `beyond_left` (further than the column at the far left), `beyond_right` (further than the far right), `between` (somewhere between two columns), `other_way` (different in a way these pictures don't show), `cant_say`; empty if unanswered, if "None" was not chosen, or with the follow-up switched off (`CONFIG.blocks.grid_none_followup`) |
 | `rt_ms` | ms from screen onset to the confirming click on Continue |
 | `cell_px` | the cell size the layout computed for this block |
 | `inner_w`, `inner_h` | the window size when the screen was shown |
@@ -347,6 +369,17 @@ exact — check it with `set_code`.
 The episode question is group-dependent (as for the pair trials); the
 normal-block question ("…how your surroundings normally look?") is the
 same for both groups.
+
+**Reading `none_detail`.** "Left" and "right" are positions **as
+displayed**, so their meaning depends on `column_order`: on a `forward`
+screen the far-left column is the lowest `level_index` and the far right
+the highest; on a `reversed` screen the other way round. So
+`beyond_right` on a forward screen, and `beyond_left` on a reversed one,
+both mean "beyond the strongest level shown"; the opposite pair means
+"beyond the weakest end" (on fog screens: clearer than the original, which
+the grid cannot show). The options name positions only, never visual
+qualities, so nothing is primed before the word ratings. (This replaces
+the free text of `interface_spec.md`; the package is unchanged.)
 
 **Not in the data on purpose:** the level parameters (chroma, haze) and the
 measured features. They are in `data/sets/v4/grid/grid_trials.csv`, keyed
@@ -368,7 +401,7 @@ block (see `interface_spec.md`).
 ```python
 g = d[d.block.isin(['episode', 'normal'])]
 g[['block', 'scene_set', 'screen', 'feature', 'column_order',
-   'chose_none', 'chosen_level_index', 'free_text']]
+   'chose_none', 'chosen_level_index', 'none_detail']]
 
 # Censored fog answers, per block
 g[(g.feature == 'fog') & (g.chosen_level_index == 0)].groupby('block').size()
@@ -505,6 +538,7 @@ For a complete, usable session:
 | check | expected |
 |---|---|
 | `is_test`, `is_dev` | both `False` |
+| `participant_id` | a real ID, or `NOID_…` with `contact_saved = True` |
 | `group` | `participant` or `control` |
 | `consent_given` | `True` |
 | `stimulus_set` | `v4` |
@@ -556,7 +590,7 @@ contact_<participant_id>_<timestamp>.csv
 
 | column | meaning |
 |---|---|
-| `participant_id` | the link to the response file and to the CDS-29 record |
+| `participant_id` | the link to the response file and to the CDS-29 record. For a participant who gave no ID, the generated `NOID_DRCHAIN26_…` ID — the same as in their response file, and the only link between the two |
 | `name`, `email` | as typed. Either may be empty |
 | `is_test`, `is_dev` | same meaning as in the response data |
 | `stimulus_set`, `language` | for convenience |

@@ -34,6 +34,8 @@ var DevMenu = (function () {
   var CALIB_KEYS     = ['fullscreen', 'screen_check', 'brightness', 'gamma'];
   var CALIB_DEFAULTS = {};
   CALIB_KEYS.forEach(function (k) { CALIB_DEFAULTS[k] = CONFIG.calibration[k]; });
+  var ANCHOR_Q_DEFAULTS = JSON.parse(JSON.stringify(
+    (CONFIG.anchoring && CONFIG.anchoring.questions) || {}));
 
   // All block switches off, then the listed ones on. Calibration likewise.
   function _only(blocksOn, calibOn) {
@@ -41,9 +43,9 @@ var DevMenu = (function () {
     Object.keys(BLOCK_DEFAULTS).forEach(function (k) {
       blocks[k] = (blocksOn.indexOf(k) !== -1);
     });
-    // The free-text option is a sub-switch of the episode grid; keep it as
-    // shipped whenever the episode grid runs.
-    if (blocks.grid_episode) blocks.grid_none_text = BLOCK_DEFAULTS.grid_none_text;
+    // The "None of these" follow-up is a sub-switch of the episode grid;
+    // keep it as shipped whenever the episode grid runs.
+    if (blocks.grid_episode) blocks.grid_none_followup = BLOCK_DEFAULTS.grid_none_followup;
     var calibration = {};
     CALIB_KEYS.forEach(function (k) { calibration[k] = (calibOn.indexOf(k) !== -1); });
     return { blocks: blocks, calibration: calibration };
@@ -287,9 +289,10 @@ var DevMenu = (function () {
 
     // --- Custom: every switch --------------------------------------------
     html += '<div class="dev-custom"><h2>Custom session</h2>' +
-            '<p class="dev-preset-note">Every switch in <code>CONFIG.blocks</code> ' +
-            'and <code>CONFIG.calibration</code>, preset to the values in ' +
-            'config.js, in session order.</p><div class="dev-switches">';
+            '<p class="dev-preset-note">Every switch in <code>CONFIG.blocks</code>, ' +
+            '<code>CONFIG.calibration</code> and <code>CONFIG.anchoring.questions</code>, ' +
+            'preset to the values in config.js. Changes here last for this ' +
+            'test session only; to keep them, edit config.js.</p><div class="dev-switches">';
     CALIB_KEYS.forEach(function (k) {
       html += '<label><input type="checkbox" data-calib="' + k + '"' +
               (CALIB_DEFAULTS[k] ? ' checked' : '') + '> calibration.' + k + '</label>';
@@ -297,6 +300,11 @@ var DevMenu = (function () {
     Object.keys(BLOCK_DEFAULTS).forEach(function (k) {
       html += '<label><input type="checkbox" data-block="' + k + '"' +
               (BLOCK_DEFAULTS[k] ? ' checked' : '') + '> blocks.' + k + '</label>';
+    });
+    Object.keys(ANCHOR_Q_DEFAULTS).forEach(function (k) {
+      html += '<label><input type="checkbox" data-anchorq="' + k + '"' +
+              (ANCHOR_Q_DEFAULTS[k] ? ' checked' : '') + '> anchoring.questions.' +
+              k + '</label>';
     });
     html += '</div>' +
             '<p>Pair trials: <input id="dev-n" type="number" min="0" max="205" ' +
@@ -331,14 +339,18 @@ var DevMenu = (function () {
 
     document.getElementById('dev-run-custom').addEventListener('click', function () {
       if (!Loader.group()) return;
-      var blocks = {}, calibration = {};
+      var blocks = {}, calibration = {}, questions = {};
       var boxes = document.querySelectorAll('.dev-switches input');
       for (var b = 0; b < boxes.length; b++) {
         var bk = boxes[b].getAttribute('data-block');
         var ck = boxes[b].getAttribute('data-calib');
+        var qk = boxes[b].getAttribute('data-anchorq');
         if (bk) blocks[bk] = boxes[b].checked;
         if (ck) calibration[ck] = boxes[b].checked;
+        if (qk) questions[qk] = boxes[b].checked;
       }
+      CONFIG.anchoring = CONFIG.anchoring || {};
+      CONFIG.anchoring.questions = questions;
       var n = parseInt(document.getElementById('dev-n').value, 10) || 0;
       var up = document.getElementById('dev-upload').checked;
       _apply({ blocks: blocks, calibration: calibration,

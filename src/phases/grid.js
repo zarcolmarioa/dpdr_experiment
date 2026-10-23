@@ -12,11 +12,17 @@
  *
  * TWO BLOCKS (CONFIG.blocks.grid_episode / grid_normal, separately)
  *   episode   after the pair trials. "None of these" button; after a screen
- *             answered "None of these", an optional free-text box
- *             (CONFIG.blocks.grid_none_text, and only where the package's
- *             block says free_text_on_none). Question is group-dependent.
- *   normal    after the word ratings. No "None" button, no free text. The
- *             same question for both groups.
+ *             answered "None of these", an optional follow-up "Which comes
+ *             closest?" with five position-based options
+ *             (CONFIG.blocks.grid_none_followup). Question is
+ *             group-dependent.
+ *   normal    after the word ratings. No "None" button, so no follow-up.
+ *             The same question for both groups.
+ *
+ * DEPARTURE FROM interface_spec.md, by design decision: the spec's free
+ * text after "None of these" (free_text) is replaced by clickable options
+ * (none_detail), so no open question — and no visual words — come just
+ * before the word ratings. The package itself is unchanged.
  *
  * THE SET SWAP
  *   main.js draws set_code = 0 or 1 (p = .5) once at session start, stamps
@@ -47,11 +53,13 @@
  *   The constants are CONFIG.grid, checked against the package's `layout`
  *   by validate.js. The computed size is recorded as cell_px.
  *
- * DATA — one row per screen, 4 per block, 8 per session. Fields exactly as
- * interface_spec.md lists them: block ('episode' / 'normal'), set_code,
- * scene_set, screen, feature, column_order, scene_ids,
- * chosen_display_column, chosen_level_index, chose_none, free_text, rt_ms,
- * cell_px, inner_w, inner_h. Level parameters and measured features are
+ * DATA — one row per screen, 4 per block, 8 per session. The fields of
+ * interface_spec.md, with none_detail in place of free_text: block
+ * ('episode' / 'normal'), set_code, scene_set, screen, feature,
+ * column_order, scene_ids, chosen_display_column, chosen_level_index,
+ * chose_none, none_detail (beyond_left / beyond_right / between /
+ * other_way / cant_say, or empty), rt_ms, cell_px, inner_w, inner_h.
+ * Level parameters and measured features are
  * NOT copied into the data: they are in grid_trials.csv, keyed by set,
  * screen, row and column. See DATA_DICTIONARY.md §8.
  * ========================================================================= */
@@ -114,18 +122,27 @@ var GridPhase = (function () {
     );
   }
 
-  // The optional free-text box shown right after a screen answered "None
-  // of these" (episode block only). Same row as the screen.
-  function _freeTextHTML() {
+  // The follow-up shown after a screen answered "None of these" (episode
+  // block, CONFIG.blocks.grid_none_followup): "Which comes closest?" with
+  // five clickable options. They point to POSITIONS on the screen (far
+  // left, far right, between), never to visual qualities, so nothing is
+  // primed before the word ratings. Not required. It replaces the footer
+  // under the (shrunk) grid, so the columns it refers to stay in view.
+  // Recorded on the same row as none_detail.
+  var FOLLOWUP_SHRINK = 0.75;
+
+  function _followupHTML() {
     var T = Loader.text().grid;
+    var opts = T.none_followup.options.map(function (o) {
+      return '<label class="aq-opt"><input type="radio" name="grid_none_detail" ' +
+             'value="' + o.code + '"><span>' + o.label + '</span></label>';
+    }).join('');
     return (
-      '<div class="card grid-text-card">' +
-      '<label class="note-field">' + T.none_text_prompt +
-      '<textarea id="grid-free-text" rows="4" maxlength="1000" ' +
-      'autocomplete="off"></textarea></label>' +
-      '<div class="btn-row">' +
-      '<button id="grid-text-continue" class="calib-btn" type="button">' +
-      T.none_text_button + '</button></div>' +
+      '<div class="grid-followup">' +
+      '<div class="grid-followup-q">' + T.none_followup.question + '</div>' +
+      '<div class="aq-opts grid-followup-opts">' + opts + '</div>' +
+      '<button id="grid-followup-continue" class="calib-btn" type="button">' +
+      T.none_followup.button + '</button>' +
       '</div>'
     );
   }
@@ -178,8 +195,8 @@ var GridPhase = (function () {
         if (noneBtn) noneBtn.addEventListener('click', function () { select('none'); });
         paint();
 
-        function finish(freeText) {
-          result.free_text = freeText;
+        function finish(detail) {
+          result.none_detail = detail;
           if (CONFIG.debug) {
             console.log('[Grid] ' + ctx.block + ' ' + ctx.sceneSet + ' screen ' +
                         screen.screen + ' (' + screen.feature + ', ' +
@@ -187,7 +204,7 @@ var GridPhase = (function () {
                         (result.chose_none ? 'none' : 'column ' +
                          result.chosen_display_column + ' = level ' +
                          result.chosen_level_index) +
-                        (freeText ? ' | text: "' + freeText + '"' : '') +
+                        (detail ? ' | closest: ' + detail : '') +
                         ' | cell ' + ctx.cellPx + 'px | ' + result.rt_ms + 'ms');
           }
           display.innerHTML = '';
@@ -212,20 +229,31 @@ var GridPhase = (function () {
             chosen_display_column: none ? null : choice + 1,
             chosen_level_index:    none ? null : col.level_index,
             chose_none:            none,
-            free_text:             null,
+            none_detail:           null,
             rt_ms:                 rt,
             cell_px:               ctx.cellPx,
             inner_w:               innerW,
             inner_h:               innerH,
           };
 
-          // "None of these" -> optional free text, on the same row.
-          if (none && ctx.freeText) {
-            display.innerHTML = _freeTextHTML();
-            var ta = document.getElementById('grid-free-text');
-            if (ta) ta.focus();
-            document.getElementById('grid-text-continue').addEventListener('click', function () {
-              finish(ta ? String(ta.value || '').trim() : '');
+          // "None of these" -> the optional follow-up, on the same row. The
+          // grid stays in view, shrunk and no longer clickable, and the
+          // footer is replaced by the question.
+          if (none && ctx.followUp) {
+            var small = Math.floor(ctx.cellPx * FOLLOWUP_SHRINK);
+            var cells = display.querySelectorAll('.grid-cell');
+            for (var c = 0; c < cells.length; c++) {
+              cells[c].style.width = small + 'px';
+              cells[c].style.height = small + 'px';
+            }
+            var colsWrap = display.querySelector('.grid-cols');
+            if (colsWrap) colsWrap.classList.add('grid-cols-inert');
+            for (var s = 0; s < colsEls.length; s++) colsEls[s].classList.remove('selected');
+            var foot = display.querySelector('.grid-foot');
+            if (foot) foot.outerHTML = _followupHTML();
+            document.getElementById('grid-followup-continue').addEventListener('click', function () {
+              var sel = display.querySelector('input[name="grid_none_detail"]:checked');
+              finish(sel ? sel.value : null);
             }, { once: true });
             return;
           }
@@ -287,8 +315,7 @@ var GridPhase = (function () {
       setCode:  setCode,
       sceneSet: sceneSet,
       showNone: !!def.none_button,
-      freeText: !!def.none_button && !!def.free_text_on_none &&
-                !!CONFIG.blocks.grid_none_text,
+      followUp: !!def.none_button && !!CONFIG.blocks.grid_none_followup,
       question: (blockName === 'episode')
                 ? Loader.byGroup(T.question_episode)
                 : T.question_normal,

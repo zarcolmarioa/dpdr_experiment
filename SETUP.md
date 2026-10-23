@@ -220,7 +220,7 @@ https://<username>.github.io/<repo-name>/?pid=R_4EWNe48BIB50mVI&group=control
 
 | parameter | required | value |
 |---|---|---|
-| `pid` | yes (typed entry is the fallback if `allow_manual_id` is on) | the participant ID, case-sensitive |
+| `pid` | recommended. Without it (and with `allow_manual_id` on) the participant must type a valid ID **or** give a name and email address | the participant ID, case-sensitive |
 | `group` | **yes** | `participant` or `control`, exactly. Without it the study does not start |
 | `idate` | no | the interview date, `YYYY-MM-DD`. Added by the researcher who schedules the interviews; never asked on screen. An invalid date is recorded empty |
 | `lang` | no | `ja` for Japanese; English otherwise |
@@ -236,10 +236,12 @@ Put the ID in the email body as well as the link:
 >
 > If the link does not work, please reply to this email.
 
-Note that the fallback "go to https://.../ and enter this ID" no longer
-works on its own: a link without `group` does not start. If you want a
-typed-ID fallback, give a link that carries the group but not the ID
-(`https://.../?group=participant`), and the ID in the email.
+A link without `group` does not start, so any fallback link must carry the
+group. A link with the group but no ID (`https://.../?group=participant`)
+does start: the participant then types their ID, or — if they do not have
+it — gives their name and email address instead (a unique `NOID_DRCHAIN26_…`
+ID is generated, and the contact file is what links the session to them).
+Giving all three is best, and the screen says so.
 
 The IDs are **case-sensitive**. `R_4EWNe48BIB50mVI` and `R_4ewne48bib50mvi`
 are different identifiers, and the experiment will reject the wrong case.

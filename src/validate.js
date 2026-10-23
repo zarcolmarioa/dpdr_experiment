@@ -62,6 +62,19 @@ var Validate = (function () {
   // State items: columns state_q02, state_q13, state_q19, state_q29.
   var EXPECTED_STATE_IDS = ['q02', 'q13', 'q19', 'q29'];
 
+  // Recorded option codes. The labels may change; the codes are the data
+  // and must be identical in both languages.
+  var EXPECTED_CODES = {
+    'anchoring.questions.when.options':
+      ['past_week', 'past_month', '1_6_months', '6_12_months', 'over_year'],
+    'anchoring.questions.duration.options':
+      ['seconds', 'minutes', 'up_to_hour', 'hours', 'day_or_longer'],
+    'anchoring.questions.where.options':
+      ['home', 'work_school', 'indoor_other', 'outdoors', 'travelling'],
+    'grid.none_followup.options':
+      ['beyond_left', 'beyond_right', 'between', 'other_way', 'cant_say'],
+  };
+
   // Grid package.
   var EXPECTED_GRID_SCREENS = 4;     // per scene set
   var EXPECTED_GRID_BLOCKS = {
@@ -368,6 +381,22 @@ var Validate = (function () {
       warnings.push('collect_id is OFF. Sessions get an anonymous ID and ' +
                     'cannot be linked to a CDS-29 score.');
     }
+    // ID for sessions without a participant ID: prefix + '_' + 8 characters.
+    // It must not be mistakable for a real or a test ID.
+    if (P.collect_id && P.allow_manual_id && P.collect_name && P.collect_email) {
+      var pre = P.no_id_prefix;
+      if (!pre || !/^[A-Za-z0-9_]+$/.test(pre)) {
+        errors.push('CONFIG.participant.no_id_prefix must be letters, digits ' +
+                    'and _ (it starts the ID of sessions without an ID).');
+      } else {
+        var sample = pre + '_ABCDEFGH';
+        if (new RegExp(P.id_pattern).test(sample) ||
+            (P.superuser_ids || []).indexOf(sample) !== -1) {
+          errors.push('IDs made from no_id_prefix ("' + sample + '") would match ' +
+                      'id_pattern or a test ID. Choose another prefix.');
+        }
+      }
+    }
     if ((P.collect_name || P.collect_email) &&
         !(CONFIG.contact_datapipe && CONFIG.contact_datapipe.experiment_id)) {
       errors.push('Name/email collection is on but CONFIG.contact_datapipe.' +
@@ -531,6 +560,23 @@ var Validate = (function () {
                     (ids.join(', ') || 'none'));
       }
     });
+
+    // Option lists (arrays, so not covered by the key comparison above).
+    for (var path in EXPECTED_CODES) {
+      var want = EXPECTED_CODES[path].join(',');
+      [['EN', TEXT_EN], ['JA', TEXT_JA]].forEach(function (lang) {
+        var list = _get(lang[1], path);
+        var got = Array.isArray(list)
+          ? list.map(function (o) { return o && o.code; }).join(',') : '';
+        if (got !== want) {
+          errors.push('TEXT_' + lang[0] + '.' + path + ' codes are [' + got +
+                      '], expected [' + want + '] — codes are what is recorded.');
+        }
+        if (Array.isArray(list) && list.some(function (o) { return !o || !o.label; })) {
+          errors.push('TEXT_' + lang[0] + '.' + path + ' has an option with no label.');
+        }
+      });
+    }
 
     // Placeholders. The consent wording and the four state items ship as
     // marked placeholders; they must be replaced before recruiting.

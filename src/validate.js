@@ -65,12 +65,6 @@ var Validate = (function () {
   // Recorded option codes. The labels may change; the codes are the data
   // and must be identical in both languages.
   var EXPECTED_CODES = {
-    'anchoring.questions.when.options':
-      ['past_week', 'past_month', '1_6_months', '6_12_months', 'over_year'],
-    'anchoring.questions.duration.options':
-      ['seconds', 'minutes', 'up_to_hour', 'hours', 'day_or_longer'],
-    'anchoring.questions.where.options':
-      ['home', 'work_school', 'indoor_other', 'outdoors', 'travelling'],
     'grid.none_followup.options':
       ['beyond_left', 'beyond_right', 'between', 'other_way', 'cant_say'],
   };

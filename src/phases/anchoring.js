@@ -8,9 +8,9 @@
  *                clearly, in which the surroundings felt different from
  *                usual, and answer about that episode throughout. Then up to
  *                four short questions about it (CONFIG.anchoring.questions):
- *                  when      choices + Other (with a field) + Prefer not to say
- *                  duration  choices + Other (with a field) + Prefer not to say
- *                  where     choices + Other (with a field) + Prefer not to say
+ *                  when      one short text field, example hint beside it
+ *                  duration  one short text field, example hint beside it
+ *                  where     one short text field, example hint beside it
  *                  clarity   0-6 + Prefer not to say
  *                None is required: Continue always works.
  *
@@ -24,27 +24,24 @@
  * the questions ask only when, how long, where and how clearly — never how
  * it felt or looked. It does not mention any interview.
  *
- * Anything typed under "Other" is stored WITH the responses (on the
- * anchoring row). The consent text says so.
+ * Anything typed is stored WITH the responses (on the anchoring row). The
+ * consent text says so.
  *
  * OUTPUT
  *   One row, block 'anchoring'. On that row only, for participants:
- *     episode_when,     episode_when_other
- *     episode_duration, episode_duration_other
- *     episode_where,    episode_where_other
- *     episode_clarity
- *   episode_<q> is the chosen option's code ('past_month', ..., 'other',
- *   'prefer_not'), or empty if unanswered or switched off. episode_<q>_other
- *   is the typed text when 'other' was chosen, else empty. episode_clarity is
- *   0-6, 'prefer_not', or empty. Controls: all empty.
+ *     episode_when, episode_duration, episode_where   the typed text
+ *                                                     (trimmed), or empty if
+ *                                                     left blank / switched off
+ *     episode_clarity                                 0-6, 'prefer_not', or empty
+ *   Controls: all empty.
  * ========================================================================= */
 
 var AnchoringPhase = (function () {
 
   // The questions are part of the participant version only.
   var QUESTION_GROUP = 'participant';
-  var OTHER_MAX = 200;   // characters
-  var CHOICE_QUESTIONS = ['when', 'duration', 'where'];
+  var TEXT_MAX = 200;    // characters
+  var TEXT_QUESTIONS = ['when', 'duration', 'where'];
   var N_CLARITY = 7;     // 0-6
 
   function _on(name) {
@@ -52,23 +49,16 @@ var AnchoringPhase = (function () {
     return q[name] !== false;
   }
 
-  // One choice question: its options, then Other (with a field), then
-  // Prefer not to say. Radio buttons, none pre-selected.
-  function _choiceHTML(name, Q, A) {
-    var opts = Q.options.map(function (o) {
-      return '<label class="aq-opt"><input type="radio" name="aq_' + name + '" ' +
-             'value="' + o.code + '"><span>' + o.label + '</span></label>';
-    }).join('');
+  // One text question: the question, then a short field with an example
+  // hint BESIDE it (not a placeholder, so it stays visible while typing).
+  function _textHTML(name, Q) {
     return (
       '<fieldset class="aq" data-q="' + name + '">' +
-      '<legend>' + Q.label + '</legend>' +
-      '<div class="aq-opts">' + opts +
-      '<label class="aq-opt aq-other"><input type="radio" name="aq_' + name + '" ' +
-      'value="other"><span>' + A.other + '</span>' +
-      '<input type="text" class="aq-other-text" id="aq_' + name + '_other" ' +
-      'maxlength="' + OTHER_MAX + '" autocomplete="off"></label>' +
-      '<label class="aq-opt"><input type="radio" name="aq_' + name + '" ' +
-      'value="prefer_not"><span>' + A.prefer_not + '</span></label>' +
+      '<legend><label for="aq_' + name + '">' + Q.label + '</label></legend>' +
+      '<div class="aq-field">' +
+      '<input type="text" class="aq-text" id="aq_' + name + '" ' +
+      'maxlength="' + TEXT_MAX + '" autocomplete="off">' +
+      '<span class="aq-hint">' + Q.hint + '</span>' +
       '</div></fieldset>'
     );
   }
@@ -112,8 +102,8 @@ var AnchoringPhase = (function () {
 
         var qs = '';
         if (asks) {
-          CHOICE_QUESTIONS.forEach(function (name) {
-            if (_on(name)) qs += _choiceHTML(name, A.questions[name], A);
+          TEXT_QUESTIONS.forEach(function (name) {
+            if (_on(name)) qs += _textHTML(name, A.questions[name]);
           });
           if (_on('clarity')) qs += _clarityHTML(A.questions.clarity, A);
         }
@@ -129,27 +119,17 @@ var AnchoringPhase = (function () {
           A.button + '</button></div>' +
           '</div>';
 
-        // Typing in an Other field selects Other.
-        var others = display.querySelectorAll('.aq-other-text');
-        for (var i = 0; i < others.length; i++) {
-          others[i].addEventListener('input', function () {
-            var radio = this.parentNode.querySelector('input[type="radio"]');
-            if (radio && this.value.trim()) radio.checked = true;
-          });
-        }
-
         var btn = document.getElementById('anchoring-continue');
         btn.addEventListener('click', function () {
           result = {};
-          CHOICE_QUESTIONS.forEach(function (name) {
-            var v = (asks && _on(name)) ? _checked(display, name) : null;
-            var t = null;
-            if (v === 'other') {
-              var f = document.getElementById('aq_' + name + '_other');
-              t = f ? String(f.value || '').trim() : '';
+          TEXT_QUESTIONS.forEach(function (name) {
+            var v = null;
+            if (asks && _on(name)) {
+              var f = document.getElementById('aq_' + name);
+              v = f ? String(f.value || '').trim() : '';
+              if (!v) v = null;          // left blank = empty, like unanswered
             }
             result['episode_' + name] = v;
-            result['episode_' + name + '_other'] = t;
           });
           var c = (asks && _on('clarity')) ? _checked(display, 'clarity') : null;
           result.episode_clarity = (c === null || c === 'prefer_not') ? c : parseInt(c, 10);

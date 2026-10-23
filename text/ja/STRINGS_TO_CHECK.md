@@ -41,7 +41,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > **Your data:** your responses are stored under a study ID, without your name. Results are reported only for groups or without identifying information. [Storage period and who has access.] [Whether anonymised data may be shared publicly, e.g. on OSF.]
   > 
-  > You may be asked a few short questions about the experience you are thinking of, such as when and where it happened. These questions are optional. Your answers, including anything you type under “Other”, are stored with your responses, so please do not include names or other details that could identify you or anyone else.
+  > You may be asked a few short questions about the experience you are thinking of, such as when and where it happened. These questions are optional. Your answers, including anything you type, are stored with your responses, so please do not include names or other details that could identify you or anyone else.
   > 
   > **Voluntary participation:** taking part is voluntary. You may stop at any time by closing this page. Your responses are saved only at the end of the study, so if you close the page before then, none of them are saved. The exception is your name and email address: they are optional, and if you give them they are saved straight away, separately from your responses, even if you do not finish. If you take part without a participant ID, your name and email address are what links your responses to you. [How to withdraw data after submission.]
   > 
@@ -59,7 +59,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > **データの扱い：**回答はお名前ではなく研究用IDのもとで保存されます。結果は集団としてまとめるか、個人が特定できない形でのみ報告します。[保存期間とアクセスできる者][匿名化したデータを公開する可能性（例：OSF）]
   > 
-  > 思い浮かべている体験について、いつ・どこで起きたかなど、いくつかの短い質問をする場合があります。これらの質問への回答は任意です。回答（「その他」に記入した内容を含む）は回答データとともに保存されますので、ご自身や他の人の名前など、個人を特定できる情報は書かないでください。
+  > 思い浮かべている体験について、いつ・どこで起きたかなど、いくつかの短い質問をする場合があります。これらの質問への回答は任意です。回答（入力した内容を含む）は回答データとともに保存されますので、ご自身や他の人の名前など、個人を特定できる情報は書かないでください。
   > 
   > **自由意思による参加：**参加は自由意思によるものです。このページを閉じることで、いつでも中止できます。回答は研究の最後にまとめて保存されるため、それより前にページを閉じた場合、回答は保存されません。ただし、お名前とメールアドレス（いずれも任意）を入力された場合は、最後まで終えなかったときでも、入力した時点で回答とは別に保存されます。参加者IDなしで参加された場合は、お名前とメールアドレスによって回答とあなたを照合します。[提出後のデータ撤回の方法]
   > 
@@ -308,23 +308,16 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > それはいつでしたか？
 
-- [ ] **23. instructions.js → `anchoring.questions.when.options`**
+- [ ] **23. instructions.js → `anchoring.questions.when.hint`**  
+  _Example shown beside the text field. Keep it free of visual words._
 
   English:
 
-  > - Within the past week  (`past_week`)
-  > - Within the past month  (`past_month`)
-  > - 1–6 months ago  (`1_6_months`)
-  > - 6–12 months ago  (`6_12_months`)
-  > - More than a year ago  (`over_year`)
+  > e.g. last week, about two months ago
 
   日本語（下書き）:
 
-  > - 1週間以内  (`past_week`)
-  > - 1か月以内  (`past_month`)
-  > - 1～6か月前  (`1_6_months`)
-  > - 6～12か月前  (`6_12_months`)
-  > - 1年以上前  (`over_year`)
+  > 例：先週、2か月ほど前
 
 - [ ] **24. instructions.js → `anchoring.questions.duration.label`**
 
@@ -336,23 +329,16 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > どのくらい続きましたか？
 
-- [ ] **25. instructions.js → `anchoring.questions.duration.options`**
+- [ ] **25. instructions.js → `anchoring.questions.duration.hint`**  
+  _Example shown beside the text field._
 
   English:
 
-  > - Seconds  (`seconds`)
-  > - A few minutes  (`minutes`)
-  > - Up to an hour  (`up_to_hour`)
-  > - Several hours  (`hours`)
-  > - A day or longer  (`day_or_longer`)
+  > e.g. a few seconds, about an hour
 
   日本語（下書き）:
 
-  > - 数秒  (`seconds`)
-  > - 数分  (`minutes`)
-  > - 1時間以内  (`up_to_hour`)
-  > - 数時間  (`hours`)
-  > - 1日以上  (`day_or_longer`)
+  > 例：数秒、1時間ほど
 
 - [ ] **26. instructions.js → `anchoring.questions.where.label`**
 
@@ -364,23 +350,16 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > どこにいましたか？
 
-- [ ] **27. instructions.js → `anchoring.questions.where.options`**
+- [ ] **27. instructions.js → `anchoring.questions.where.hint`**  
+  _Example shown beside the text field._
 
   English:
 
-  > - At home  (`home`)
-  > - At work or school  (`work_school`)
-  > - Another indoor place  (`indoor_other`)
-  > - Outdoors  (`outdoors`)
-  > - Travelling  (`travelling`)
+  > e.g. at home, on a train, in a shop
 
   日本語（下書き）:
 
-  > - 自宅  (`home`)
-  > - 職場・学校  (`work_school`)
-  > - その他の屋内  (`indoor_other`)
-  > - 屋外  (`outdoors`)
-  > - 移動中  (`travelling`)
+  > 例：自宅、電車の中、お店
 
 - [ ] **28. instructions.js → `anchoring.questions.clarity.label`**
 
@@ -412,18 +391,8 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > とてもはっきり覚えている
 
-- [ ] **31. instructions.js → `anchoring.other`**  
-  _Followed by a short text field._
-
-  English:
-
-  > Other:
-
-  日本語（下書き）:
-
-  > その他：
-
-- [ ] **32. instructions.js → `anchoring.prefer_not`**
+- [ ] **31. instructions.js → `anchoring.prefer_not`**  
+  _Used only on the “how clearly” scale._
 
   English:
 
@@ -433,7 +402,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 回答しない
 
-- [ ] **33. instructions.js → `anchoring.button`**
+- [ ] **32. instructions.js → `anchoring.button`**
 
   English:
 
@@ -445,7 +414,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 ## Trial prompt (shown on every image trial)
 
-- [ ] **34. instructions.js → `prompt.main.participant`**  
+- [ ] **33. instructions.js → `prompt.main.participant`**  
   _LOAD-BEARING. その…エピソード must clearly refer back to the anchoring episode._
 
   English:
@@ -456,7 +425,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > そのエピソード中の周囲の風景の見え方に、より近いのはどちらですか？
 
-- [ ] **35. instructions.js → `prompt.main.control`**  
+- [ ] **34. instructions.js → `prompt.main.control`**  
   _LOAD-BEARING. Must fit on one line above the pictures if possible._
 
   English:
@@ -469,7 +438,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 ## Practice (now the same for both groups; the interview is no longer mentioned)
 
-- [ ] **36. instructions.js → `practice.body`**
+- [ ] **35. instructions.js → `practice.body`**
 
   English:
 
@@ -495,7 +464,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > まず練習から始めます。
 
-- [ ] **37. instructions.js → `practice.end_body`**  
+- [ ] **36. instructions.js → `practice.end_body`**  
   _New trial count (205) and duration (~10 minutes)._
 
   English:
@@ -516,7 +485,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 ## Episode grid block
 
-- [ ] **38. instructions.js → `grid.episode.title`**
+- [ ] **37. instructions.js → `grid.episode.title`**
 
   English:
 
@@ -526,7 +495,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 列を選ぶ課題
 
-- [ ] **39. instructions.js → `grid.episode.instructions`**
+- [ ] **38. instructions.js → `grid.episode.instructions`**
 
   English:
 
@@ -548,7 +517,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > 「次へ」を押すまでは選択を変更できます。時間制限はありません。
 
-- [ ] **40. instructions.js → `grid.question_episode.participant`**  
+- [ ] **39. instructions.js → `grid.question_episode.participant`**  
   _LOAD-BEARING._
 
   English:
@@ -559,7 +528,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > そのエピソード中の周囲の風景の見え方に、最も近いのはどの列ですか？
 
-- [ ] **41. instructions.js → `grid.question_episode.control`**  
+- [ ] **40. instructions.js → `grid.question_episode.control`**  
   _LOAD-BEARING._
 
   English:
@@ -570,7 +539,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 現実感喪失を体験している人にとっての周囲の風景の見え方に、最も近いと思うのはどの列ですか？
 
-- [ ] **42. instructions.js → `grid.none`**  
+- [ ] **41. instructions.js → `grid.none`**  
   _Unchanged; listed for context._
 
   English:
@@ -581,7 +550,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > どれも当てはまらない
 
-- [ ] **43. instructions.js → `grid.none_followup.question`**  
+- [ ] **42. instructions.js → `grid.none_followup.question`**  
   _Shown under the shrunk grid after “None of these”. The options name positions on the screen only — keep them free of visual words._
 
   English:
@@ -592,7 +561,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 「どれも当てはまらない」を選びました。最も近いのはどれですか？
 
-- [ ] **44. instructions.js → `grid.none_followup.options`**
+- [ ] **43. instructions.js → `grid.none_followup.options`**
 
   English:
 
@@ -610,7 +579,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > - これらの画像には表れていない違い  (`other_way`)
   > - わからない  (`cant_say`)
 
-- [ ] **45. instructions.js → `grid.none_followup.button`**
+- [ ] **44. instructions.js → `grid.none_followup.button`**
 
   English:
 
@@ -622,7 +591,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 ## Word ratings
 
-- [ ] **46. words.js → `title`**
+- [ ] **45. words.js → `title`**
 
   English:
 
@@ -632,7 +601,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 言葉の評価
 
-- [ ] **47. words.js → `instruction.participant`**
+- [ ] **46. words.js → `instruction.participant`**
 
   English:
 
@@ -650,7 +619,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > すべての言葉について、0（まったく当てはまらない）から6（非常によく当てはまる）で評価してください。まったく当てはまらない言葉もあります。それで構いませんので、すべての言葉について回答してください。
 
-- [ ] **48. words.js → `instruction.control`**
+- [ ] **47. words.js → `instruction.control`**
 
   English:
 
@@ -668,7 +637,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > すべての言葉について、0（まったく当てはまらない）から6（非常によく当てはまる）で評価してください。まったく当てはまらない言葉もあります。それで構いませんので、すべての言葉について回答してください。
 
-- [ ] **49. words.js → `question_short.participant`**
+- [ ] **48. words.js → `question_short.participant`**
 
   English:
 
@@ -678,7 +647,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > そのエピソード中、それぞれの言葉は、あなたの周囲の風景の見え方をどの程度よく表していますか。
 
-- [ ] **50. words.js → `question_short.control`**
+- [ ] **49. words.js → `question_short.control`**
 
   English:
 
@@ -690,7 +659,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 ## Normal-appearance grid block
 
-- [ ] **51. instructions.js → `grid.normal.title`**
+- [ ] **50. instructions.js → `grid.normal.title`**
 
   English:
 
@@ -700,7 +669,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > もう一度、列を選ぶ課題
 
-- [ ] **52. instructions.js → `grid.normal.instructions`**
+- [ ] **51. instructions.js → `grid.normal.instructions`**
 
   English:
 
@@ -718,7 +687,7 @@ General rules that apply to every string (see the header of `text/en/instruction
   > 
   > 列の中のどこをクリックしても選択できます。「次へ」を押すまでは選択を変更できます。時間制限はありません。
 
-- [ ] **53. instructions.js → `grid.question_normal`**
+- [ ] **52. instructions.js → `grid.question_normal`**
 
   English:
 
@@ -730,7 +699,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 ## State items (optional block at the end)
 
-- [ ] **54. instructions.js → `state.lead_in`**  
+- [ ] **53. instructions.js → `state.lead_in`**  
   _Drafted. If the published Japanese version of the questionnaire has its own lead-in for the state form, use that instead._
 
   English:
@@ -741,7 +710,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 今、この瞬間：
 
-- [ ] **55. instructions.js → `state.anchor_low`**  
+- [ ] **54. instructions.js → `state.anchor_low`**  
   _Same Japanese as the word-rating anchor, as requested (the English differs: “not at all”)._
 
   English:
@@ -752,7 +721,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > まったく当てはまらない
 
-- [ ] **56. instructions.js → `state.anchor_high`**  
+- [ ] **55. instructions.js → `state.anchor_high`**  
   _Same Japanese as the word-rating anchor, as requested (the English differs: “completely” vs the word ratings’ “exactly”)._
 
   English:
@@ -763,7 +732,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > 非常によく当てはまる
 
-- [ ] **57. instructions.js → `state.progress`**
+- [ ] **56. instructions.js → `state.progress`**
 
   English:
 
@@ -773,7 +742,7 @@ General rules that apply to every string (see the header of `text/en/instruction
 
   > {TOTAL} 項目中 {DONE} 項目に回答済み
 
-- [ ] **58. instructions.js → `state.button_submit`**
+- [ ] **57. instructions.js → `state.button_submit`**
 
   English:
 

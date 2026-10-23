@@ -745,16 +745,27 @@ body.allow-scaling .stim-panel {
 .aq-opt input[type="radio"] { margin: 0; accent-color: #4a6fa5; cursor: pointer; }
 .aq-opt:has(input[type="radio"]:checked) { border-color: #4a6fa5; background: #eef3fa; }
 
-.aq-other-text {
-  width: 11rem;
-  padding: 0 .35rem;
-  height: 1.35rem;
-  box-sizing: border-box;
-  font: inherit;
-  font-size: .85rem;
-  border: 1px solid #bbb;
-  border-radius: 3px;
+/* Text questions: a short field with the example hint BESIDE it (stays
+   visible while typing). The hint drops below on a narrow card. */
+.aq-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .2rem .7rem;
+  margin-top: .25rem;
 }
+.aq-text {
+  width: 17rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: .25rem .45rem;
+  font: inherit;
+  font-size: .92rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+.aq-hint { font-size: .82rem; color: #777; }
+.aq legend label { cursor: text; }
 
 /* How clearly: 0-6 with the end labels at the sides. */
 .aq-scale {
@@ -783,8 +794,7 @@ body.allow-scaling .stim-panel {
 .grid-cols-inert { pointer-events: none; opacity: .85; }
 
 .grid-followup {
-  margin-top: .9rem;
-  max-width: min(980px, 94vw);
+  margin-top: .8rem;
   text-align: center;
 }
 .grid-followup-q {
@@ -793,8 +803,50 @@ body.allow-scaling .stim-panel {
   margin-bottom: .5rem;
   text-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
-.grid-followup-opts { justify-content: center; }
-.grid-followup .calib-btn { margin-top: .7rem; }
+
+/* Three tracks: [far-left option][exactly the width of the columns]
+   [far-right option]. grid.js sets the track widths from the measured
+   grid, so the side options sit just outside the first and last column,
+   on the same line as "Somewhere between…". */
+.gf-row {
+  display: grid;
+  grid-template-columns: 160px auto 160px;   /* replaced by grid.js */
+  align-items: start;
+  justify-content: center;
+  margin: 0 auto;
+}
+.gf-left  { justify-self: end;   }
+.gf-right { justify-self: start; }
+.gf-mid {
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;      /* radios line up down the stack */
+  gap: .35rem;
+}
+
+.gf-opt {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: .35rem;
+  padding: .2rem .6rem .2rem .45rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: .86rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.gf-opt input[type="radio"] {
+  margin: .12rem 0 0;
+  flex: 0 0 auto;
+  accent-color: #4a6fa5;
+  cursor: pointer;
+}
+.gf-opt:has(input[type="radio"]:checked) { border-color: #4a6fa5; background: #eef3fa; }
+.grid-followup .calib-btn { margin-top: .8rem; }
 
 /* --- State items: the word-rating grid with longer item text ------------- */
 

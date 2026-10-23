@@ -689,39 +689,112 @@ body.allow-scaling .stim-panel {
 }
 .calib-note p { margin: .4rem 0; }
 
-/* --- Anchoring and free-text boxes --------------------------------------- */
+/* --- Anchoring: the questions about the episode (participants) ---------- */
 
-.anchoring-card { max-width: 680px; }
-
-.note-field {
-  display: block;
-  font-size: .95rem;
-  color: #333;
-  margin: 1.2rem 0 .4rem;
-  text-align: left;
-}
-
-.note-field textarea {
-  display: block;
-  width: 100%;
+/* The card may be taller than a short window once the questions are on:
+   it scrolls inside itself, because the centred layout would otherwise
+   cut its top off with no way to scroll to it. */
+.anchoring-card {
+  max-width: 720px;
+  max-height: 94vh;
+  overflow-y: auto;
   box-sizing: border-box;
-  margin-top: .4rem;
-  padding: .45rem .6rem;
+  padding-top: 1.4rem;
+  padding-bottom: 1.2rem;
+}
+.anchoring-card .btn-row { margin-top: .2rem; }
+.anchoring-card .btn-row .calib-btn { margin-top: .5rem; }
+.anchoring-card h2 { margin-bottom: .5rem; }
+.anchoring-card p { margin: .5rem 0; line-height: 1.5; }
+
+.aq-intro { margin: .8rem 0 .2rem; font-size: .92rem; color: #333; }
+.aq-list  { text-align: left; }
+
+.aq {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 0;
+  padding: .3rem 0 .35rem;
+}
+.aq legend {
+  padding: 0;
+  font-size: .92rem;
+  font-weight: 600;
+  color: #222;
+}
+
+/* Choices as small pills that wrap; the radio stays visible. */
+.aq-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .45rem;
+  margin-top: .2rem;
+}
+.aq-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .1rem .5rem .1rem .35rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 999px;
+  background: #fff;
+  font-size: .86rem;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.aq-opt input[type="radio"] { margin: 0; accent-color: #4a6fa5; cursor: pointer; }
+.aq-opt:has(input[type="radio"]:checked) { border-color: #4a6fa5; background: #eef3fa; }
+
+.aq-other-text {
+  width: 11rem;
+  padding: 0 .35rem;
+  height: 1.35rem;
+  box-sizing: border-box;
   font: inherit;
-  font-size: 1rem;
+  font-size: .85rem;
   border: 1px solid #bbb;
-  border-radius: 4px;
-  resize: vertical;
+  border-radius: 3px;
 }
 
-.note-field .field-hint {
-  display: block;
+/* How clearly: 0-6 with the end labels at the sides. */
+.aq-scale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem .55rem;
+  margin-top: .2rem;
+  font-size: .86rem;
+}
+.aq-scale .aq-opt { margin-left: .8rem; }
+.aq-scale-pt {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
   font-size: .8rem;
-  color: #666;
-  margin-top: .3rem;
+  color: #555;
 }
+.aq-scale-pt input { margin: 0 0 .1rem; accent-color: #4a6fa5; cursor: pointer; }
+.aq-anchor { font-size: .78rem; color: #777; }
 
-.grid-text-card { max-width: 640px; }
+/* --- Grid: follow-up after "None of these" -------------------------------- */
+
+/* The grid stays in view (shrunk) but can no longer be clicked. */
+.grid-cols-inert { pointer-events: none; opacity: .85; }
+
+.grid-followup {
+  margin-top: .9rem;
+  max-width: min(980px, 94vw);
+  text-align: center;
+}
+.grid-followup-q {
+  color: #f0f0f0;
+  font-size: 1rem;
+  margin-bottom: .5rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.grid-followup-opts { justify-content: center; }
+.grid-followup .calib-btn { margin-top: .7rem; }
 
 /* --- State items: the word-rating grid with longer item text ------------- */
 

@@ -74,8 +74,11 @@ var TEXT_EN = {
   //    not finished;
   //  - everything else is uploaded only at the very end; closing the page
   //    earlier saves nothing else;
-  //  - the optional note naming the episode (participants only) is stored
-  //    WITH the responses.
+  //  - the optional answers about the episode (participants only),
+  //    including anything typed under "Other", are stored WITH the
+  //    responses;
+  //  - without a participant ID, the name and email are what link the
+  //    responses to the person.
   consent: {
     title: 'Consent to take part',
     body:
@@ -94,16 +97,20 @@ var TEXT_EN = {
       'without your name. Results are reported only for groups or without ' +
       'identifying information. [Storage period and who has access.] ' +
       '[Whether anonymised data may be shared publicly, e.g. on OSF.]</p>' +
-      '<p>You may be asked to note, in a few words, which experience you are ' +
-      'thinking of. This note is optional and is stored with your responses, ' +
-      'so please do not include names or other details that could identify ' +
-      'you or anyone else.</p>' +
+      '<p>You may be asked a few short questions about the experience you are ' +
+      'thinking of, such as when and where it happened. These questions are ' +
+      'optional. Your answers, including anything you type under ' +
+      '&ldquo;Other&rdquo;, are stored with your responses, so please do not ' +
+      'include names or other details that could identify you or anyone ' +
+      'else.</p>' +
       '<p><b>Voluntary participation:</b> taking part is voluntary. You may ' +
       'stop at any time by closing this page. Your responses are saved only ' +
       'at the end of the study, so if you close the page before then, none of ' +
       'them are saved. The exception is your name and email address: they are ' +
       'optional, and if you give them they are saved straight away, ' +
-      'separately from your responses, even if you do not finish. ' +
+      'separately from your responses, even if you do not finish. If you take ' +
+      'part without a participant ID, your name and email address are what ' +
+      'links your responses to you. ' +
       '[How to withdraw data after submission.]</p>' +
       '<p><b>Contact:</b> [researcher email]. For questions about your rights ' +
       'as a participant: [ethics committee contact]. [Ethics approval ' +
@@ -131,14 +138,17 @@ var TEXT_EN = {
   },
 
   // --- Anchoring (just before the practice) -----------------------------
-  // body is GROUP-DEPENDENT. The note box is shown to participants only.
+  // body is GROUP-DEPENDENT. The questions are shown to participants only
+  // (each can be switched off in CONFIG.anchoring.questions), and none is
+  // required. They ask when, how long, where and how clearly — never how
+  // it felt or looked. Option codes are what is recorded: keep them, and
+  // keep them identical in text/ja.
   anchoring: {
     title: 'Before you begin',
     body: {
       participant:
-        '<p>Please bring to mind one specific episode in which your ' +
-        'surroundings felt different from usual, ideally a recent one that you ' +
-        'remember clearly.</p>' +
+        '<p>Please bring to mind your most recent episode that you remember ' +
+        'clearly, in which your surroundings felt different from usual.</p>' +
         '<p>Throughout this study, please answer about that episode.</p>',
       control:
         '<p>Derealization is an experience in which one&rsquo;s surroundings ' +
@@ -146,9 +156,47 @@ var TEXT_EN = {
         '<p>In this study, please imagine how the surroundings might look to ' +
         'someone experiencing derealization.</p>',
     },
-    note_label: 'In a few words, which episode is it? (for example, where you were)',
-    note_hint:  'Optional. Please do not include names or other details that ' +
-                'could identify you or anyone else.',
+    // Shown above the questions, only when at least one is switched on.
+    questions_intro: 'A few optional questions about that episode:',
+    questions: {
+      when: {
+        label: 'When was it?',
+        options: [
+          { code: 'past_week',   label: 'Within the past week' },
+          { code: 'past_month',  label: 'Within the past month' },
+          { code: '1_6_months',  label: '1&ndash;6 months ago' },
+          { code: '6_12_months', label: '6&ndash;12 months ago' },
+          { code: 'over_year',   label: 'More than a year ago' },
+        ],
+      },
+      duration: {
+        label: 'How long did it last?',
+        options: [
+          { code: 'seconds',       label: 'Seconds' },
+          { code: 'minutes',       label: 'A few minutes' },
+          { code: 'up_to_hour',    label: 'Up to an hour' },
+          { code: 'hours',         label: 'Several hours' },
+          { code: 'day_or_longer', label: 'A day or longer' },
+        ],
+      },
+      where: {
+        label: 'Where were you?',
+        options: [
+          { code: 'home',         label: 'At home' },
+          { code: 'work_school',  label: 'At work or school' },
+          { code: 'indoor_other', label: 'Another indoor place' },
+          { code: 'outdoors',     label: 'Outdoors' },
+          { code: 'travelling',   label: 'Travelling' },
+        ],
+      },
+      clarity: {
+        label:       'How clearly do you remember it?',
+        anchor_low:  'not at all clearly',
+        anchor_high: 'very clearly',
+      },
+    },
+    other:      'Other:',
+    prefer_not: 'Prefer not to say',
     button:     'Continue',
   },
 
@@ -286,6 +334,22 @@ var TEXT_EN = {
     email_label:    'Email address (optional)',
     button:         'Continue',
 
+    // When the link carries no participant ID: an ID, or a name AND an
+    // email address, are needed to continue.
+    body_no_pid:    '<p>Please enter your participant ID from your invitation ' +
+                    'email.</p>' +
+                    '<p>If you do not have it, enter your <b>name</b> and ' +
+                    '<b>email address</b> instead. Giving all three is best.</p>' +
+                    '<p>Your name and email address are stored separately from ' +
+                    'your answers. They are used only to contact you about this ' +
+                    'study and, if you give no ID, to link your answers to ' +
+                    'you.</p>',
+    name_label_plain:  'Name',
+    email_label_plain: 'Email address',
+    // Plain text: shown by the browser in a small bubble.
+    need_id_or_contact: 'Please enter your participant ID, or your name and ' +
+                        'email address.',
+
     missing_title:  'Missing participant ID',
     missing_body:   '<p>This link is incomplete. Please use the full link from ' +
                     'your invitation email, or contact the researcher.</p>',
@@ -361,9 +425,21 @@ var TEXT_EN = {
     button_continue: 'Continue',
     progress:        'Screen {DONE} of {TOTAL}',
     // Shown right after a screen answered "None of these" (episode block,
-    // CONFIG.blocks.grid_none_text). Optional; recorded on that screen's row.
-    none_text_prompt: 'In your own words, what would have fitted better? (optional)',
-    none_text_button: 'Continue',
+    // CONFIG.blocks.grid_none_followup), under the shrunk grid. Not
+    // required; recorded on that screen's row as none_detail. The options
+    // point to POSITIONS, never to visual qualities. Keep the codes, and
+    // keep them identical in text/ja.
+    none_followup: {
+      question: 'You chose &ldquo;None of these&rdquo;. Which comes closest?',
+      options: [
+        { code: 'beyond_left',  label: 'Further than the column at the far left' },
+        { code: 'beyond_right', label: 'Further than the column at the far right' },
+        { code: 'between',      label: 'Somewhere between two of the columns' },
+        { code: 'other_way',    label: 'Different in a way these pictures don&rsquo;t show' },
+        { code: 'cant_say',     label: 'I can&rsquo;t say' },
+      ],
+      button: 'Continue',
+    },
   },
 
   // --- State items (optional block at the end) --------------------------

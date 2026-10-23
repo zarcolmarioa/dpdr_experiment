@@ -97,9 +97,27 @@ var CONFIG = {
   // The contact file is uploaded whenever a name or email is given, on
   // every platform including local/dev runs, so it can be tested quickly.
   // Test sessions are flagged is_test / is_dev inside that file too.
+  //
+  // NO ID IN THE LINK (allow_manual_id: true, name and email both
+  // collected). The participant must give EITHER a valid participant ID
+  // OR both a name and a valid email address — giving all three is best,
+  // and the screen says so. An ID that is typed but does not match
+  // id_pattern still blocks Continue (a mistyped ID would point to the
+  // wrong person); to continue without an ID the field must be empty.
+  // A session without an ID gets a unique ID made of no_id_prefix, '_',
+  // and 8 random characters (e.g. NOID_DRCHAIN26_7K3QX9PA). It is the
+  // participant_id of the response file AND of the contact file, so the
+  // two link exactly as they do with a real ID — which means the link to
+  // the person then rests entirely on the contact file reaching DataPipe
+  // (recorded as contact_saved). id_source = 'no_id'. These are real
+  // sessions, not tests: is_test stays false.
+  //
+  // With a valid ?pid= in the link nothing changes: the ID is filled in,
+  // and name and email are optional.
   // -----------------------------------------------------------------------
   participant: {
     id_pattern:        '^R_[A-Za-z0-9]{15}$',
+    no_id_prefix:      'NOID_DRCHAIN26',
 
     // Test IDs. Accepted in place of a real ID, and every row of a session
     // using one is flagged is_test = true. Add more as needed.
@@ -308,12 +326,39 @@ var CONFIG = {
     mock:         false,  // six placeholder trials; superseded by 'main'
     grid_episode: true,   // grid block after the pair trials, with "None
                           // of these"
-    grid_none_text: true, // optional free text right after a grid screen
-                          // answered "None of these". Applies only where
-                          // the grid package allows it (the episode block).
+    grid_none_followup: true,  // after a screen answered "None of these":
+                          // "Which comes closest?" with five clickable,
+                          // position-based options (no visual words), not
+                          // required. Only where the screen has a "None"
+                          // button (the episode block).
     words:        true,   // word ratings — AFTER the episode grid
     grid_normal:  true,   // grid block after the word ratings, no "None"
     state:        true,   // four state items at the end (optional block)
+  },
+
+  // -----------------------------------------------------------------------
+  // Anchoring screen: the questions about the episode, shown to the
+  // PARTICIPANT group only (controls have no episode to describe). Each can
+  // be switched off; with all four off the screen shows only the text.
+  // None of them is required — Continue always works, and an unanswered
+  // question is recorded empty.
+  //
+  //   when      When was it?               choices + Other + Prefer not to say
+  //   duration  How long did it last?      choices + Other + Prefer not to say
+  //   where     Where were you?            choices + Other + Prefer not to say
+  //   clarity   How clearly do you remember it?   0-6 + Prefer not to say
+  //
+  // Columns on the anchoring row: episode_when, episode_when_other,
+  // episode_duration, episode_duration_other, episode_where,
+  // episode_where_other, episode_clarity. See DATA_DICTIONARY.md §6.
+  // -----------------------------------------------------------------------
+  anchoring: {
+    questions: {
+      when:     true,
+      duration: true,
+      where:    true,
+      clarity:  true,
+    },
   },
 
   // -----------------------------------------------------------------------

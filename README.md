@@ -35,13 +35,13 @@ by a timed run). Each step has its own switch in `config.js`.
 |---|---|---|
 | 1 | Consent — "I do not agree" ends the session, nothing uploaded | `blocks.consent` (**required** on `index.html`) |
 | 2 | Full screen and window check — a window that cannot show the trial layout whole **stops** the session (no "continue anyway"), before anything is uploaded | `calibration.fullscreen`, `calibration.screen_check` |
-| 3 | Participant ID (+ optional name and email, uploaded separately straight away) | `participant.collect_*` |
+| 3 | Participant ID (+ name and email, uploaded separately straight away). Without an ID in the link: an ID **or** a name and email are required | `participant.collect_*`, `participant.allow_manual_id` |
 | 4 | Brightness confirmation, with a note on night mode / colour filters | `calibration.brightness` |
 | 5 | Gamma matching (3×) | `calibration.gamma` |
-| 6 | Anchoring — one specific episode (participants) / what derealization is (controls) | `blocks.anchoring` |
+| 6 | Anchoring — the most recent episode remembered clearly, with four optional questions (participants) / what derealization is (controls) | `blocks.anchoring`, `anchoring.questions.*` |
 | 7 | Practice — 6 trials | `blocks.practice` |
 | 8 | Pair trials — 205, with 4 breaks (every 41) | `blocks.main` |
-| 9 | Episode grid block — 4 screens, with "None of these" and optional free text | `blocks.grid_episode` (+ `blocks.grid_none_text`) |
+| 9 | Episode grid block — 4 screens, with "None of these" and an optional "Which comes closest?" follow-up | `blocks.grid_episode` (+ `blocks.grid_none_followup`) |
 | 10 | Word ratings — 10 words, 0–6 | `blocks.words` |
 | 11 | Normal-appearance grid block — 4 screens | `blocks.grid_normal` |
 | 12 | State items — 4 items, 0–6 (optional block) | `blocks.state` |
@@ -63,7 +63,7 @@ https://<username>.github.io/<repo-name>/?pid=<ID>&group=<group>&idate=<YYYY-MM-
 
 | parameter | required | values | notes |
 |---|---|---|---|
-| `pid` | yes* | `R_` + 15 letters/digits, case-sensitive | *if missing, the participant may type it (`participant.allow_manual_id`) |
+| `pid` | yes* | `R_` + 15 letters/digits, case-sensitive | *if missing (and `participant.allow_manual_id` is true), the participant must type a valid ID **or** give both a name and an email address — see "Participant IDs" |
 | `group` | **yes** | `participant` or `control` (exact, lower case) | missing or misspelt → the study does not start and shows "This link is incomplete" |
 | `idate` | no | `YYYY-MM-DD`, a real date | the interview date, added by the researcher who schedules the interviews. Never asked on screen. Invalid → recorded empty |
 | `lang` | no | `en` (default) or `ja` | |
@@ -147,8 +147,23 @@ That is why the window check stops, rather than warns, when they do not fit.
 
 ## Participant IDs
 
-Format `R_` followed by 15 alphanumeric characters, **case-sensitive**.
-Normally arrives as `?pid=...` in the URL, with typed entry as a fallback.
+Format `R_` followed by 15 alphanumeric characters, **case-sensitive**
+(`participant.id_pattern`). Normally arrives as `?pid=...` in the URL. The
+ID is only checked against that format — it is not looked up anywhere.
+
+**A link without a valid `pid`** (with `participant.allow_manual_id: true`)
+still starts. The ID screen then asks for the ID, name and email, says
+that all three is best, and will not continue unless the participant gives
+**either** a valid ID **or** both a name and a valid email address. An ID
+that is typed but does not match the format always blocks Continue (it
+would point to the wrong person).
+
+A participant who gives a name and email but no ID gets a unique session
+ID, `NOID_DRCHAIN26_` + 8 random characters (prefix:
+`participant.no_id_prefix`). It appears in both the response file and the
+contact file, so the two still link — but then the contact file is the
+only link to the person. With `allow_manual_id: false`, a link without a
+`pid` does not start at all.
 
 `Z_21121989` (yours) and `CHAIN_2026` (colleagues) are test IDs. Sessions
 using them are flagged `is_test = true` on every row.
@@ -163,8 +178,11 @@ In `config.js`:
 |---|---|
 | `platform` | `'local'` / `'github'` / `'pavlovia'` |
 | `debug` | validation report in the console; upload details on the completion screen |
-| `blocks.*` | each step on or off (see the session table) |
+| `blocks.*` | each step on or off (see the session table). Turning a step off removes it; the order of the steps is fixed in `src/main.js` |
+| `anchoring.questions.*` | each of the four episode questions (`when`, `duration`, `where`, `clarity`) on or off |
+| `blocks.grid_none_followup` | the "Which comes closest?" question after "None of these" on or off |
 | `participant.allow_manual_id` | set false to require the URL parameter |
+| `participant.no_id_prefix` | start of the ID given to sessions without one (`NOID_DRCHAIN26`) |
 | `researcher_contact` | shown on the final and upload-failure screens |
 | `timing.break_every` | 41 = five equal parts of the 205 pair trials |
 
@@ -195,8 +213,9 @@ invitation while any item fails**.
 - [ ] `debug: false`.
 - [ ] `researcher_contact` is a real address (not `CHANGE_ME@example.com`).
 - [ ] `experiment.version` bumped to `1.0.0`.
-- [ ] `participant.allow_manual_id` decided (true = typed IDs accepted;
-      false = the link's `pid` only).
+- [ ] `participant.allow_manual_id` decided (true = without a `pid` in the
+      link, a typed ID or a name and email are accepted; false = the link's
+      `pid` only).
 - [ ] `blocks.consent: true`. (`index.html` refuses to start with it off, but
       check anyway.)
 - [ ] Every registered block switched on: `consent`, `anchoring`,
@@ -237,6 +256,11 @@ invitation while any item fails**.
       analysed, 4 + 4 grid rows, the `word_ratings` and `state` rows, and
       `group`, `set_code`, `consent_given`, `interview_date`,
       `rating_foggy`, `rating_faded` on every row.
+- [ ] The no-ID path tested on the deployed site: a link without `pid`,
+      name and email given, no ID — the response file has a `NOID_…`
+      `participant_id` and the **contact file with the same ID arrived** on
+      the contact component. During recruitment, check `contact_saved` on
+      every `NOID_…` session: without the contact file it cannot be linked.
 - [ ] The test IDs (`Z_21121989`, `CHAIN_2026`) — and every `is_dev`
       session — **excluded at analysis**; their test files deleted or
       ignored on OSF.

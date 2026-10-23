@@ -343,14 +343,14 @@ var CONFIG = {
   // None of them is required — Continue always works, and an unanswered
   // question is recorded empty.
   //
-  //   when      When was it?               choices + Other + Prefer not to say
-  //   duration  How long did it last?      choices + Other + Prefer not to say
-  //   where     Where were you?            choices + Other + Prefer not to say
+  //   when      When was it?               short text field + example hint
+  //   duration  How long did it last?      short text field + example hint
+  //   where     Where were you?            short text field + example hint
   //   clarity   How clearly do you remember it?   0-6 + Prefer not to say
   //
-  // Columns on the anchoring row: episode_when, episode_when_other,
-  // episode_duration, episode_duration_other, episode_where,
-  // episode_where_other, episode_clarity. See DATA_DICTIONARY.md §6.
+  // Columns on the anchoring row: episode_when, episode_duration,
+  // episode_where (the typed text), episode_clarity. See
+  // DATA_DICTIONARY.md §6.
   // -----------------------------------------------------------------------
   anchoring: {
     questions: {

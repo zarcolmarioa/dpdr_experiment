@@ -38,10 +38,10 @@ by a timed run). Each step has its own switch in `config.js`.
 | 3 | Participant ID (+ name and email, uploaded separately straight away). Without an ID in the link: an ID **or** a name and email are required | `participant.collect_*`, `participant.allow_manual_id` |
 | 4 | Brightness confirmation, with a note on night mode / colour filters | `calibration.brightness` |
 | 5 | Gamma matching (3×) | `calibration.gamma` |
-| 6 | Anchoring — the most recent episode remembered clearly, with four optional questions (participants) / what derealization is (controls) | `blocks.anchoring`, `anchoring.questions.*` |
+| 6 | Anchoring — the most recent episode remembered clearly, with four optional questions — when, how long, where (short text fields with an example beside each) and how clearly (0–6) (participants) / what derealization is (controls) | `blocks.anchoring`, `anchoring.questions.*` |
 | 7 | Practice — 6 trials | `blocks.practice` |
 | 8 | Pair trials — 205, with 4 breaks (every 41) | `blocks.main` |
-| 9 | Episode grid block — 4 screens, with "None of these" and an optional "Which comes closest?" follow-up | `blocks.grid_episode` (+ `blocks.grid_none_followup`) |
+| 9 | Episode grid block — 4 screens, with "None of these" and an optional "Which comes closest?" follow-up, its options placed where they point (beside the first and last columns, and between) | `blocks.grid_episode` (+ `blocks.grid_none_followup`) |
 | 10 | Word ratings — 10 words, 0–6 | `blocks.words` |
 | 11 | Normal-appearance grid block — 4 screens | `blocks.grid_normal` |
 | 12 | State items — 4 items, 0–6 (optional block) | `blocks.state` |

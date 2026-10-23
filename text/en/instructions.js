@@ -75,8 +75,7 @@ var TEXT_EN = {
   //  - everything else is uploaded only at the very end; closing the page
   //    earlier saves nothing else;
   //  - the optional answers about the episode (participants only),
-  //    including anything typed under "Other", are stored WITH the
-  //    responses;
+  //    including anything typed, are stored WITH the responses;
   //  - without a participant ID, the name and email are what link the
   //    responses to the person.
   consent: {
@@ -99,10 +98,9 @@ var TEXT_EN = {
       '[Whether anonymised data may be shared publicly, e.g. on OSF.]</p>' +
       '<p>You may be asked a few short questions about the experience you are ' +
       'thinking of, such as when and where it happened. These questions are ' +
-      'optional. Your answers, including anything you type under ' +
-      '&ldquo;Other&rdquo;, are stored with your responses, so please do not ' +
-      'include names or other details that could identify you or anyone ' +
-      'else.</p>' +
+      'optional. Your answers, including anything you type, are stored ' +
+      'with your responses, so please do not include names or other details ' +
+      'that could identify you or anyone else.</p>' +
       '<p><b>Voluntary participation:</b> taking part is voluntary. You may ' +
       'stop at any time by closing this page. Your responses are saved only ' +
       'at the end of the study, so if you close the page before then, none of ' +
@@ -141,8 +139,9 @@ var TEXT_EN = {
   // body is GROUP-DEPENDENT. The questions are shown to participants only
   // (each can be switched off in CONFIG.anchoring.questions), and none is
   // required. They ask when, how long, where and how clearly — never how
-  // it felt or looked. Option codes are what is recorded: keep them, and
-  // keep them identical in text/ja.
+  // it felt or looked. when / duration / where are short text fields with
+  // the example `hint` shown beside them; keep the examples free of visual
+  // words and of anything identifying.
   anchoring: {
     title: 'Before you begin',
     body: {
@@ -161,33 +160,15 @@ var TEXT_EN = {
     questions: {
       when: {
         label: 'When was it?',
-        options: [
-          { code: 'past_week',   label: 'Within the past week' },
-          { code: 'past_month',  label: 'Within the past month' },
-          { code: '1_6_months',  label: '1&ndash;6 months ago' },
-          { code: '6_12_months', label: '6&ndash;12 months ago' },
-          { code: 'over_year',   label: 'More than a year ago' },
-        ],
+        hint:  'e.g. last week, about two months ago',
       },
       duration: {
         label: 'How long did it last?',
-        options: [
-          { code: 'seconds',       label: 'Seconds' },
-          { code: 'minutes',       label: 'A few minutes' },
-          { code: 'up_to_hour',    label: 'Up to an hour' },
-          { code: 'hours',         label: 'Several hours' },
-          { code: 'day_or_longer', label: 'A day or longer' },
-        ],
+        hint:  'e.g. a few seconds, about an hour',
       },
       where: {
         label: 'Where were you?',
-        options: [
-          { code: 'home',         label: 'At home' },
-          { code: 'work_school',  label: 'At work or school' },
-          { code: 'indoor_other', label: 'Another indoor place' },
-          { code: 'outdoors',     label: 'Outdoors' },
-          { code: 'travelling',   label: 'Travelling' },
-        ],
+        hint:  'e.g. at home, on a train, in a shop',
       },
       clarity: {
         label:       'How clearly do you remember it?',
@@ -195,7 +176,6 @@ var TEXT_EN = {
         anchor_high: 'very clearly',
       },
     },
-    other:      'Other:',
     prefer_not: 'Prefer not to say',
     button:     'Continue',
   },

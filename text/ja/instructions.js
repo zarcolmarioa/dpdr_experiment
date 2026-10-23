@@ -68,7 +68,7 @@ var TEXT_JA = {
       '可能性（例：OSF）]</p>' +
       '<p>思い浮かべている体験について、いつ・どこで起きたかなど、いくつかの' +
       '短い質問をする場合があります。これらの質問への回答は任意です。' +
-      '回答（「その他」に記入した内容を含む）は回答データとともに保存され' +
+      '回答（入力した内容を含む）は回答データとともに保存され' +
       'ますので、ご自身や他の人の名前など、個人を特定できる情報は書かないで' +
       'ください。</p>' +
       '<p><b>自由意思による参加：</b>参加は自由意思によるものです。この' +
@@ -103,7 +103,7 @@ var TEXT_JA = {
 
   // --- 課題の前に（練習の直前） -------------------------------------------
   // body はグループによって異なる。質問は participant のみ（任意回答）。
-  // 選択肢の code は記録される値なので、英語版と同一に保つこと。
+  // when / duration / where は短い記入欄で、横に例（hint）を表示する。
   anchoring: {
     title: '課題の前に',
     body: {
@@ -121,33 +121,15 @@ var TEXT_JA = {
     questions: {
       when: {
         label: 'それはいつでしたか？',
-        options: [
-          { code: 'past_week',   label: '1週間以内' },
-          { code: 'past_month',  label: '1か月以内' },
-          { code: '1_6_months',  label: '1～6か月前' },
-          { code: '6_12_months', label: '6～12か月前' },
-          { code: 'over_year',   label: '1年以上前' },
-        ],
+        hint:  '例：先週、2か月ほど前',
       },
       duration: {
         label: 'どのくらい続きましたか？',
-        options: [
-          { code: 'seconds',       label: '数秒' },
-          { code: 'minutes',       label: '数分' },
-          { code: 'up_to_hour',    label: '1時間以内' },
-          { code: 'hours',         label: '数時間' },
-          { code: 'day_or_longer', label: '1日以上' },
-        ],
+        hint:  '例：数秒、1時間ほど',
       },
       where: {
         label: 'どこにいましたか？',
-        options: [
-          { code: 'home',         label: '自宅' },
-          { code: 'work_school',  label: '職場・学校' },
-          { code: 'indoor_other', label: 'その他の屋内' },
-          { code: 'outdoors',     label: '屋外' },
-          { code: 'travelling',   label: '移動中' },
-        ],
+        hint:  '例：自宅、電車の中、お店',
       },
       clarity: {
         label:       'そのエピソードをどのくらいはっきり覚えていますか？',
@@ -155,7 +137,6 @@ var TEXT_JA = {
         anchor_high: 'とてもはっきり覚えている',
       },
     },
-    other:      'その他：',
     prefer_not: '回答しない',
     button:     '次へ',
   },

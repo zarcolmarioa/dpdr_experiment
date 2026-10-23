@@ -123,28 +123,59 @@ var GridPhase = (function () {
   }
 
   // The follow-up shown after a screen answered "None of these" (episode
-  // block, CONFIG.blocks.grid_none_followup): "Which comes closest?" with
-  // five clickable options. They point to POSITIONS on the screen (far
-  // left, far right, between), never to visual qualities, so nothing is
-  // primed before the word ratings. Not required. It replaces the footer
-  // under the (shrunk) grid, so the columns it refers to stay in view.
-  // Recorded on the same row as none_detail.
-  var FOLLOWUP_SHRINK = 0.75;
+  // block, CONFIG.blocks.grid_none_followup — one switch for the question
+  // and all its options): "Which comes closest?". Not required. Recorded on
+  // the same row as none_detail.
+  //
+  // The options point to POSITIONS on the screen, never to visual
+  // qualities, so nothing is primed before the word ratings — and they are
+  // laid out where they point, under the shrunk (still visible) grid:
+  //
+  //   [far-left option] [  the six columns  ] [far-right option]
+  //                     [between two columns]
+  //                     [different in a way…]
+  //                     [I can't say        ]
+  //
+  // The two "Further than…" options sit just outside the first and the last
+  // column, on the same line as "Somewhere between…". The grid is shrunk
+  // enough to leave room for them at the sides (at least FOLLOWUP_MIN_SIDE).
+  var FOLLOWUP_SHRINK   = 0.75;  // at most 75% of the block's cell size
+  var FOLLOWUP_MIN_SIDE = 140;   // px kept for each side option
+  var FOLLOWUP_MAX_SIDE = 200;
+  var FOLLOWUP_GAP      = 12;    // px between a side option and the grid
 
   function _followupHTML() {
     var T = Loader.text().grid;
-    var opts = T.none_followup.options.map(function (o) {
-      return '<label class="aq-opt"><input type="radio" name="grid_none_detail" ' +
-             'value="' + o.code + '"><span>' + o.label + '</span></label>';
-    }).join('');
+    var byCode = {};
+    T.none_followup.options.forEach(function (o) { byCode[o.code] = o; });
+    function opt(code, cls) {
+      return '<label class="gf-opt' + (cls ? ' ' + cls : '') + '">' +
+             '<input type="radio" name="grid_none_detail" value="' + code + '">' +
+             '<span>' + byCode[code].label + '</span></label>';
+    }
     return (
       '<div class="grid-followup">' +
       '<div class="grid-followup-q">' + T.none_followup.question + '</div>' +
-      '<div class="aq-opts grid-followup-opts">' + opts + '</div>' +
+      '<div class="gf-row">' +
+      opt('beyond_left', 'gf-left') +
+      '<div class="gf-mid">' +
+      opt('between') + opt('other_way') + opt('cant_say') +
+      '</div>' +
+      opt('beyond_right', 'gf-right') +
+      '</div>' +
       '<button id="grid-followup-continue" class="calib-btn" type="button">' +
       T.none_followup.button + '</button>' +
       '</div>'
     );
+  }
+
+  // Cell size for the follow-up: 75% of the block's, or smaller if needed
+  // to leave room for the two side options.
+  function _followupCell(cellPx, nCols) {
+    var c = CONFIG.grid;
+    var room = (window.innerWidth - 2 * (FOLLOWUP_MIN_SIDE + FOLLOWUP_GAP) - 16 -
+                (nCols - 1) * c.col_gap_px) / nCols - c.cell_chrome_px;
+    return Math.max(60, Math.floor(Math.min(cellPx * FOLLOWUP_SHRINK, room)));
   }
 
   // -----------------------------------------------------------------------
@@ -240,7 +271,7 @@ var GridPhase = (function () {
           // grid stays in view, shrunk and no longer clickable, and the
           // footer is replaced by the question.
           if (none && ctx.followUp) {
-            var small = Math.floor(ctx.cellPx * FOLLOWUP_SHRINK);
+            var small = _followupCell(ctx.cellPx, screen.columns.length);
             var cells = display.querySelectorAll('.grid-cell');
             for (var c = 0; c < cells.length; c++) {
               cells[c].style.width = small + 'px';
@@ -251,6 +282,18 @@ var GridPhase = (function () {
             for (var s = 0; s < colsEls.length; s++) colsEls[s].classList.remove('selected');
             var foot = display.querySelector('.grid-foot');
             if (foot) foot.outerHTML = _followupHTML();
+
+            // Line the row up with the grid: the middle track is exactly as
+            // wide as the columns, so the side options start just outside
+            // the first and the last column.
+            var row = display.querySelector('.gf-row');
+            if (row && colsWrap) {
+              var gw = Math.ceil(colsWrap.getBoundingClientRect().width);
+              var side = Math.floor((window.innerWidth - gw) / 2 - FOLLOWUP_GAP - 8);
+              side = Math.max(90, Math.min(FOLLOWUP_MAX_SIDE, side));
+              row.style.gridTemplateColumns = side + 'px ' + gw + 'px ' + side + 'px';
+              row.style.columnGap = FOLLOWUP_GAP + 'px';
+            }
             document.getElementById('grid-followup-continue').addEventListener('click', function () {
               var sel = display.querySelector('input[name="grid_none_detail"]:checked');
               finish(sel ? sel.value : null);

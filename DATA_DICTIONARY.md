@@ -24,7 +24,7 @@ e.g. R_9rJJWk01c767jE8_v4_2026-11-03T05-10-40.csv
 The timestamp is UTC in ISO 8601 format, with `:` and `.` replaced by `-`,
 taken at the moment of upload.
 
-A full session produces **660 rows and about 125 columns** (one or two more
+A full session produces **660 rows and about 123 columns** (one or two more
 rows if ID entry needed a retry).
 
 **Nothing is saved until the very end.** The upload happens after the last
@@ -226,20 +226,18 @@ switchable in `config.js` (`CONFIG.anchoring.questions`). **None is
 required.** Controls see no questions; all these columns are empty for
 them. On this row only.
 
-| column | values |
-|---|---|
-| `episode_when` | `past_week`, `past_month`, `1_6_months`, `6_12_months`, `over_year`, `other`, `prefer_not`; empty = unanswered / switched off |
-| `episode_when_other` | the text typed next to "Other:" when `episode_when = other` (possibly empty); empty otherwise |
-| `episode_duration` | `seconds`, `minutes` (a few minutes), `up_to_hour`, `hours` (several hours), `day_or_longer`, `other`, `prefer_not`; empty |
-| `episode_duration_other` | as for `_when_other` |
-| `episode_where` | `home`, `work_school`, `indoor_other` (another indoor place), `outdoors`, `travelling`, `other`, `prefer_not`; empty |
-| `episode_where_other` | as for `_when_other` |
-| `episode_clarity` | how clearly they remember it: `0` (not at all clearly) … `6` (very clearly), `prefer_not`; empty |
+| column | question on screen | values |
+|---|---|---|
+| `episode_when` | When was it? (hint: *e.g. last week, about two months ago*) | the typed text, trimmed; empty = left blank / switched off |
+| `episode_duration` | How long did it last? (hint: *e.g. a few seconds, about an hour*) | the typed text; empty |
+| `episode_where` | Where were you? (hint: *e.g. at home, on a train, in a shop*) | the typed text; empty |
+| `episode_clarity` | How clearly do you remember it? | `0` (not at all clearly) … `6` (very clearly), `prefer_not`; empty |
 
-The codes are fixed (the labels on screen are in `text/<lang>/
-instructions.js`). Anything typed under "Other" is free text stored **with
-the responses**; the consent text asks participants not to include names
-or other identifying details, but check it before any data are shared.
+The first three are short free-text answers (up to 200 characters), in the
+participant's own words and language, so they need coding before
+analysis. They are stored **with the responses**; the consent text asks
+participants not to include names or other identifying details, but check
+them before any data are shared.
 
 ---
 
@@ -369,6 +367,11 @@ exact — check it with `set_code`.
 The episode question is group-dependent (as for the pair trials); the
 normal-block question ("…how your surroundings normally look?") is the
 same for both groups.
+
+**How the follow-up looks.** The grid stays in view, shrunk. The two
+"Further than…" options sit just outside the first and the last column,
+level with "Somewhere between two of the columns" in the middle; "Different
+in a way these pictures don't show" and "I can't say" are below it.
 
 **Reading `none_detail`.** "Left" and "right" are positions **as
 displayed**, so their meaning depends on `column_order`: on a `forward`

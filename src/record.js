@@ -33,6 +33,53 @@
 var Record = (function () {
 
   // -----------------------------------------------------------------------
+  // Session and task times.
+  //
+  //   session  from the session-start stamp (just before the consent
+  //            screen) to the save step.
+  //   task     from the onset of the first image trial (the first practice
+  //            trial, or the first pair trial if practice is off) to the
+  //            answer to the last pair trial.
+  //
+  // Times in the DATA are UTC (ISO 8601, ending in Z). The FILE NAMES use
+  // the session start in JAPAN TIME, so the response file and the contact
+  // file of one session carry the same stamp — see sessionStamp().
+  // -----------------------------------------------------------------------
+  var _sessionStart = null;   // Date
+  var _taskStart    = null;   // Date
+  var _taskEnd      = null;   // Date
+
+  var JST_OFFSET_MS = 9 * 60 * 60 * 1000;   // Japan: UTC+9, no daylight saving
+
+  function _sessionStartDate() {
+    if (!_sessionStart) _sessionStart = new Date();
+    return _sessionStart;
+  }
+
+  function sessionStartISO() {
+    return _sessionStartDate().toISOString();
+  }
+
+  // The session start in Japan time, safe for file names:
+  //   2026-10-30T14-12-40
+  // Computed from UTC + 9 h, so it is Japan time whatever time zone the
+  // participant's computer is set to.
+  function sessionStamp() {
+    var jst = new Date(_sessionStartDate().getTime() + JST_OFFSET_MS);
+    return jst.toISOString().slice(0, 19).replace(/:/g, '-');
+  }
+
+  // Called when an image trial (practice, pair or catch) is shown / answered.
+  // The first call to markTaskStart sets the start; every markTaskEnd moves
+  // the end, so the last one wins.
+  function markTaskStart() { if (!_taskStart) _taskStart = new Date(); }
+  function markTaskEnd()   { _taskEnd = new Date(); }
+
+  function _seconds(a, b) {
+    return (a && b) ? Math.round((b.getTime() - a.getTime()) / 1000) : null;
+  }
+
+  // -----------------------------------------------------------------------
   // Session-level properties, added to every row by jsPsych.
   //
   // jsPsych's addProperties applies to rows already recorded as well as to
@@ -60,7 +107,10 @@ var Record = (function () {
       // Grid set swap: 0 = episode block shows set A, normal block set B;
       // 1 = the reverse. Binomial, not exact — see interface_spec.md.
       set_code:             setCode,
-      session_start_time:   new Date().toISOString(),
+
+      // UTC. The same moment, in Japan time, is the stamp in both file
+      // names (sessionStamp).
+      session_start_time:   sessionStartISO(),
 
       // Display context, measured before full screen. The full-screen
       // values are added by screen-check.js.
@@ -81,8 +131,20 @@ var Record = (function () {
     });
   }
 
+  // -----------------------------------------------------------------------
+  // Closing stamps, at the save step: session end and both durations, on
+  // every row. The durations are whole seconds; task_* are empty if no
+  // image trial ran (e.g. a dev session without trials).
+  // -----------------------------------------------------------------------
   function stampSessionEnd(jsPsych, extra) {
-    var props = { session_end_time: new Date().toISOString() };
+    var end = new Date();
+    var props = {
+      session_end_time:   end.toISOString(),
+      session_duration_s: _seconds(_sessionStartDate(), end),
+      task_start_time:    _taskStart ? _taskStart.toISOString() : null,
+      task_end_time:      _taskEnd   ? _taskEnd.toISOString()   : null,
+      task_duration_s:    _seconds(_taskStart, _taskEnd),
+    };
     if (extra) {
       for (var k in extra) {
         if (Object.prototype.hasOwnProperty.call(extra, k)) props[k] = extra[k];
@@ -211,7 +273,12 @@ var Record = (function () {
 
   // -----------------------------------------------------------------------
   // Filename for the uploaded file:
-  //     <participant_id>_<stimulus_set>_<timestamp>.csv
+  //     <participant_id>_<stimulus_set>_<session start, Japan time>.csv
+  //     e.g. R_9rJJWk01c767jE8_v4_2026-10-30T14-12-40.csv
+  //
+  // The stamp is the SESSION START (not the upload time), so it is the same
+  // in the contact file's name (contact_<participant_id>_<stamp>.csv) and
+  // in the download offered if the upload fails.
   //
   // The set appears in the name as well as in the data. That redundancy is
   // deliberate: the OSF component can be sorted by arm without opening
@@ -221,9 +288,8 @@ var Record = (function () {
   // Colons and dots are stripped so the name is safe on every filesystem.
   // -----------------------------------------------------------------------
   function sessionFilename(participantId) {
-    var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    var set   = Loader.stimulusSet();
-    return participantId + '_' + set + '_' + stamp + '.csv';
+    var set = Loader.stimulusSet();
+    return participantId + '_' + set + '_' + sessionStamp() + '.csv';
   }
 
   return {
@@ -236,5 +302,9 @@ var Record = (function () {
     finishPairTrial:   finishPairTrial,
     finishCatchTrial:  finishCatchTrial,
     sessionFilename:   sessionFilename,
+    sessionStamp:      sessionStamp,
+    sessionStartISO:   sessionStartISO,
+    markTaskStart:     markTaskStart,
+    markTaskEnd:       markTaskEnd,
   };
 })();

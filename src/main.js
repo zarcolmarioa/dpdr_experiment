@@ -1,18 +1,38 @@
 /* =========================================================================
  * main.js — assembles the timeline and runs it.
  *
- * Structure of a session (smoke test version):
- *   1. participant ID
- *   2. mock trials
- *   3. save  (DataPipe / Pavlovia / local download)
- *   4. completion screen, showing whether the upload succeeded
+ * Before anything: the GROUP must come from the link (?group=participant
+ * or ?group=control). Without a valid one the session does not start; it
+ * shows the "incomplete link" screen and nothing is recorded.
  *
- * The full experiment adds consent, calibration, word ratings, preload,
- * the real pair trials, the grid block and the final questions between
- * steps 1 and 3. Nothing about the save path changes.
+ * A session, the same for both groups (each step has its own switch in
+ * config.js):
+ *    1. consent                      phases/consent.js     blocks.consent
+ *       "I do not agree" ends the session here, nothing uploaded.
+ *    2. full screen + window check   calibration/screen-check.js
+ *       a window too small for the trial layout STOPS the session here,
+ *       before the ID screen, so nothing is uploaded.
+ *    3. participant ID (+ optional name/email, uploaded separately)
+ *       -> the background image download starts after this screen
+ *    4. brightness confirmation      calibration/brightness-confirmation.js
+ *    5. gamma matching               calibration/gamma.js
+ *    6. anchoring                    phases/anchoring.js   blocks.anchoring
+ *    7. practice                     phases/pairs.js       blocks.practice
+ *    8. pair trials (205)            phases/pairs.js       blocks.main
+ *    9. episode grid block           phases/grid.js        blocks.grid_episode
+ *   10. word ratings                 phases/words.js       blocks.words
+ *   11. normal-appearance grid block phases/grid.js        blocks.grid_normal
+ *   12. state items (optional)       phases/state.js       blocks.state
+ *   13. save  (DataPipe / Pavlovia / local download)
+ *   14. completion screen, showing whether the upload succeeded
+ *
+ * Session-level stamps on every row: experiment, group, interview_date,
+ * set_code (the grid set swap, drawn once here), display, consent_given,
+ * participant_id / is_test, the target word ratings, the closing stamps.
  * ========================================================================= */
 
 /* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, WordsPhase, GridPhase,
+          ConsentPhase, AnchoringPhase, StatePhase,
           ScreenCheck, BrightnessConfirmation, GammaCalibration,
           Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
@@ -235,6 +255,76 @@ function _buildCompletionNode() {
 }
 
 // ---------------------------------------------------------------------------
+// The grid set swap, drawn ONCE per session with p = .5 and used for the
+// whole session (interface_spec.md: rule random_recorded). dev.html may fix
+// it with ?set_code=0 or 1, for testing both arrangements; index.html never
+// reads that parameter.
+// ---------------------------------------------------------------------------
+function _drawSetCode() {
+  if (window.DEV_MODE) {
+    var forced = new URLSearchParams(window.location.search).get('set_code');
+    if (forced === '0' || forced === '1') return parseInt(forced, 10);
+  }
+  return (Math.random() < 0.5) ? 0 : 1;
+}
+
+// ---------------------------------------------------------------------------
+// "Incomplete link": no valid ?group=. The same kind of message as a
+// missing participant ID. Nothing is recorded or uploaded.
+// ---------------------------------------------------------------------------
+function _runIncompleteLink() {
+  var L = Loader.text().link;
+  console.warn('[Main] ?group= is missing or invalid (expected one of ' +
+               CONFIG.groups.join(', ') + ') — session not started.');
+  jsPsych.run([{
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '<div class="card"><h2>' + L.missing_title + '</h2>' +
+              L.missing_body + '</div>',
+    choices: 'NO_KEYS',
+    data: { block: 'link_incomplete' },
+  }]);
+}
+
+// ---------------------------------------------------------------------------
+// Start the image download in the BACKGROUND. Does not block: the
+// participant carries on with calibration and the anchoring screen while
+// the images arrive. Each block's preload gate then waits for whatever is
+// still missing. Pair images first (needed first), then the episode grid's
+// set, then the normal grid's.
+// ---------------------------------------------------------------------------
+function _buildBackgroundPreload(setCode) {
+  return {
+    type: jsPsychCallFunction,
+    func: function () {
+      try {
+        var urls = [];
+        if (CONFIG.blocks.practice || CONFIG.blocks.main) {
+          urls = urls.concat(Loader.preloadURLs());
+        }
+        if (Loader.hasGrid()) {
+          ['episode', 'normal'].forEach(function (b) {
+            if (!CONFIG.blocks['grid_' + b]) return;
+            Loader.gridScreens(Loader.gridSceneSet(b, setCode)).forEach(function (s) {
+              s.rows.forEach(function (r) {
+                r.images.forEach(function (p) { urls.push(Loader.gridImageURL(p)); });
+              });
+            });
+          });
+        }
+        if (urls.length) jsPsych.pluginAPI.preloadImages(urls);
+        if (CONFIG.debug) {
+          console.log('[Preload] background download started (' +
+                      urls.length + ' images).');
+        }
+      } catch (e) {
+        console.warn('[Preload] background start failed; the gates will ' +
+                     'download them instead.', e);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Build and run.
 // ---------------------------------------------------------------------------
 function runExperiment() {
@@ -257,16 +347,22 @@ function runExperiment() {
     }
   }, false);
 
-  timeline = timeline.concat(_buildPavloviaInit());
-  timeline = timeline.concat(ParticipantID.buildNodes(jsPsych));
+  // No valid group in the link: do not start.
+  if (!Loader.group()) {
+    _runIncompleteLink();
+    return;
+  }
 
-  // Stamp the session properties once the ID is known.
+  var setCode = _drawSetCode();
+
+  timeline = timeline.concat(_buildPavloviaInit());
+
+  // Session properties, stamped first so they reach every row (jsPsych's
+  // addProperties also covers rows recorded later).
   timeline.push({
     type: jsPsychCallFunction,
     func: function () {
-      Record.stampSessionStart(
-        jsPsych, ParticipantID.get(), ParticipantID.isSuperuser()
-      );
+      Record.stampSessionStart(jsPsych, setCode);
       // Mark anything started from dev.html, or run with a trial limit, so
       // it can never be mistaken for a real session.
       jsPsych.data.addProperties({
@@ -276,11 +372,31 @@ function runExperiment() {
     },
   });
 
-  // Fullscreen, viewport gate, and the stimulus size check.
+  // 1. Consent. Declining ends the session here with nothing uploaded.
+  if (CONFIG.blocks.consent) {
+    timeline = timeline.concat(ConsentPhase.buildNodes(jsPsych));
+  }
+
+  // 2. Full screen, window check (hard stop), and the dev size check.
+  //    Before the ID screen, so a stopped participant has uploaded nothing.
   timeline = timeline.concat(ScreenCheck.buildNodes(jsPsych));
 
-  // Display calibration. Order matters: brightness first, because the gamma
-  // match is judged by eye and a dimmed screen would bias it.
+  // 3. Participant ID, then stamp it.
+  timeline = timeline.concat(ParticipantID.buildNodes(jsPsych));
+  timeline.push({
+    type: jsPsychCallFunction,
+    func: function () {
+      Record.stampParticipant(jsPsych, ParticipantID.get(),
+                              ParticipantID.isSuperuser());
+    },
+  });
+
+  // Start downloading the stimuli in the background, early, so they are
+  // usually cached by the time the practice and the grid blocks need them.
+  timeline.push(_buildBackgroundPreload(setCode));
+
+  // 4-5. Display calibration. Order matters: brightness first, because the
+  // gamma match is judged by eye and a dimmed screen would bias it.
   if (CONFIG.calibration.brightness) {
     timeline = timeline.concat(BrightnessConfirmation.getNodes(jsPsych));
   }
@@ -288,52 +404,40 @@ function runExperiment() {
     timeline = timeline.concat(GammaCalibration.getNodes(jsPsych));
   }
 
-  // Start downloading the stimuli in the BACKGROUND. This does not block:
-  // the participant carries on with the screens above while the images
-  // arrive. PairsPhase then gates on completion just before practice.
-  timeline.push({
-    type: jsPsychCallFunction,
-    func: function () {
-      try {
-        // Pair images only if a pair block runs; grid images only if the
-        // grid runs. Order matters: the pairs are needed first.
-        var urls = [];
-        if (CONFIG.blocks.practice || CONFIG.blocks.main) {
-          urls = urls.concat(Loader.preloadURLs());
-        }
-        if (CONFIG.blocks.grid && Loader.hasGrid()) {
-          urls = urls.concat(Loader.gridPreloadURLs());
-        }
-        if (urls.length) jsPsych.pluginAPI.preloadImages(urls);
-        if (CONFIG.debug) {
-          console.log('[Preload] background download started (' +
-                      urls.length + ' images).');
-        }
-      } catch (e) {
-        console.warn('[Preload] background start failed; the gate will ' +
-                     'download them instead.', e);
-      }
-    },
-  });
-
-  // Descriptor ratings. These are the PREDICTOR, so they must come before
-  // the image task: rated afterwards, they would be contaminated by what
-  // the participant had just spent fifteen minutes looking at.
-  if (CONFIG.blocks.words) {
-    timeline = timeline.concat(WordsPhase.buildNodes(jsPsych));
+  // 6. Anchoring: the episode (participants) or the imagined experience
+  // (controls) that every later judgment is about.
+  if (CONFIG.blocks.anchoring) {
+    timeline = timeline.concat(AnchoringPhase.buildNodes(jsPsych));
   }
 
+  // 7-8. Practice and the pair trials.
   if (CONFIG.blocks.mock) {
     timeline = timeline.concat(MockPhase.buildNodes(jsPsych));
   } else {
     timeline = timeline.concat(PairsPhase.buildNodes(jsPsych));
   }
 
-  // Grid block, after all pair trials. Returns nothing for sets without a
-  // grid (see CONFIG.data.grid_sets).
-  if (CONFIG.blocks.grid) {
-    timeline = timeline.concat(GridPhase.buildNodes(jsPsych));
+  // 9. Episode grid block.
+  if (CONFIG.blocks.grid_episode) {
+    timeline = timeline.concat(GridPhase.buildNodes(jsPsych, 'episode', setCode));
   }
+
+  // 10. Word ratings — after the image task and the episode grid.
+  if (CONFIG.blocks.words) {
+    timeline = timeline.concat(WordsPhase.buildNodes(jsPsych));
+  }
+
+  // 11. Normal-appearance grid block.
+  if (CONFIG.blocks.grid_normal) {
+    timeline = timeline.concat(GridPhase.buildNodes(jsPsych, 'normal', setCode));
+  }
+
+  // 12. State items (optional block).
+  if (CONFIG.blocks.state) {
+    timeline = timeline.concat(StatePhase.buildNodes(jsPsych));
+  }
+
+  // 13-14. Save and completion.
   timeline = timeline.concat(_buildSaveNodes());
   timeline.push(_buildCompletionNode());
 

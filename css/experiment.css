@@ -644,3 +644,232 @@ body.allow-scaling .stim-panel {
 
 /* Button row under a card (html-button-response puts it outside). */
 #jspsych-html-button-response-btngroup { margin-top: 1.2rem; }
+
+/* --- Window check -------------------------------------------------------- */
+
+/* The real trial layout, drawn for a moment to be measured, never seen. */
+.fit-probe { visibility: hidden; }
+
+/* --- Consent ------------------------------------------------------------- */
+
+.consent-card { max-width: 720px; }
+
+/* The consent text scrolls INSIDE the card, so the checkbox and both
+   buttons are always on screen: a card taller than the window would be cut
+   off at the top by the centred layout, with no way to scroll to it. */
+.consent-text {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: .6rem;
+  border-bottom: 1px solid #ddd;
+}
+.consent-text p { margin: .6rem 0; }
+
+.consent-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn-secondary {
+  color: #333;
+  background: #fff;
+  border-color: #999;
+  cursor: pointer;
+}
+
+/* --- Brightness: viewing-conditions note --------------------------------- */
+
+.calib-note {
+  font-size: .92rem;
+  color: #444;
+  border-left: 3px solid #c8c8c8;
+  padding: .1rem 0 .1rem .9rem;
+  margin: 1rem 0 0;
+}
+.calib-note p { margin: .4rem 0; }
+
+/* --- Anchoring: the questions about the episode (participants) ---------- */
+
+/* The card may be taller than a short window once the questions are on:
+   it scrolls inside itself, because the centred layout would otherwise
+   cut its top off with no way to scroll to it. */
+.anchoring-card {
+  max-width: 720px;
+  max-height: 94vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding-top: 1.4rem;
+  padding-bottom: 1.2rem;
+}
+.anchoring-card .btn-row { margin-top: .2rem; }
+.anchoring-card .btn-row .calib-btn { margin-top: .5rem; }
+.anchoring-card h2 { margin-bottom: .5rem; }
+.anchoring-card p { margin: .5rem 0; line-height: 1.5; }
+
+.aq-intro { margin: .8rem 0 .2rem; font-size: .92rem; color: #333; }
+.aq-list  { text-align: left; }
+
+.aq {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 0;
+  padding: .3rem 0 .35rem;
+}
+.aq legend {
+  padding: 0;
+  font-size: .92rem;
+  font-weight: 600;
+  color: #222;
+}
+
+/* Choices as small pills that wrap; the radio stays visible. */
+.aq-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .45rem;
+  margin-top: .2rem;
+}
+.aq-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .1rem .5rem .1rem .35rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 999px;
+  background: #fff;
+  font-size: .86rem;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.aq-opt input[type="radio"] { margin: 0; accent-color: #4a6fa5; cursor: pointer; }
+.aq-opt:has(input[type="radio"]:checked) { border-color: #4a6fa5; background: #eef3fa; }
+
+/* Text questions: a short field with the example hint BESIDE it (stays
+   visible while typing). The hint drops below on a narrow card. */
+.aq-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .2rem .7rem;
+  margin-top: .25rem;
+}
+.aq-text {
+  width: 17rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: .25rem .45rem;
+  font: inherit;
+  font-size: .92rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+.aq-hint { font-size: .82rem; color: #777; }
+.aq legend label { cursor: text; }
+
+/* How clearly: 0-6 with the end labels at the sides. */
+.aq-scale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem .55rem;
+  margin-top: .2rem;
+  font-size: .86rem;
+}
+.aq-scale .aq-opt { margin-left: .8rem; }
+.aq-scale-pt {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  font-size: .8rem;
+  color: #555;
+}
+.aq-scale-pt input { margin: 0 0 .1rem; accent-color: #4a6fa5; cursor: pointer; }
+.aq-anchor { font-size: .78rem; color: #777; }
+
+/* --- Grid: follow-up after "None of these" -------------------------------- */
+
+/* The grid stays in view (shrunk) but can no longer be clicked. */
+.grid-cols-inert { pointer-events: none; opacity: .85; }
+
+.grid-followup {
+  margin-top: .8rem;
+  text-align: center;
+}
+.grid-followup-q {
+  color: #f0f0f0;
+  font-size: 1rem;
+  margin-bottom: .5rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+
+/* Three tracks: [far-left option][exactly the width of the columns]
+   [far-right option]. grid.js sets the track widths from the measured
+   grid, so the side options sit just outside the first and last column,
+   on the same line as "Somewhere between…". */
+.gf-row {
+  display: grid;
+  grid-template-columns: 160px auto 160px;   /* replaced by grid.js */
+  align-items: start;
+  justify-content: center;
+  margin: 0 auto;
+}
+.gf-left  { justify-self: end;   }
+.gf-right { justify-self: start; }
+.gf-mid {
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;      /* radios line up down the stack */
+  gap: .35rem;
+}
+
+.gf-opt {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: .35rem;
+  padding: .2rem .6rem .2rem .45rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: .86rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.gf-opt input[type="radio"] {
+  margin: .12rem 0 0;
+  flex: 0 0 auto;
+  accent-color: #4a6fa5;
+  cursor: pointer;
+}
+.gf-opt:has(input[type="radio"]:checked) { border-color: #4a6fa5; background: #eef3fa; }
+.grid-followup .calib-btn { margin-top: .8rem; }
+
+/* --- State items: the word-rating grid with longer item text ------------- */
+
+.wr-state { width: min(980px, 94vw); }
+.wr-state .wr-row { grid-template-columns: 48% 52%; }
+.wr-state .wr-word {
+  font-weight: 500;
+  text-align: left;
+  padding: .45rem 1.1rem .45rem .2rem;
+  line-height: 1.35;
+}
+.wr-state .wr-question { font-size: 1.05rem; margin-bottom: .7rem; }
+
+/* --- Dev menu additions --------------------------------------------------- */
+
+.dev-preset[disabled] { opacity: .45; cursor: not-allowed; }
+.dev-missing { color: #b3261e; }
+.dev-custom h2 { font-size: 1.05rem; margin: 0 0 .3rem; }
+.dev-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: .2rem 1rem;
+  margin: .6rem 0 .8rem;
+  font-size: .85rem;
+}
+.dev-custom button[disabled] { opacity: .45; cursor: not-allowed; }

@@ -2,17 +2,23 @@
  * pairs.js — the image-pair trials, driven entirely by trial_list.json.
  *
  * Structure:
- *   preload gate  -> waits for the 227 images (usually instant, since
+ *   preload gate  -> waits for the 334 images (usually instant, since
  *                    downloading started in the background earlier)
  *   practice intro
  *   6 practice trials          (trial_type 'practice', analysed false)
  *   practice end
- *   137 main trials            (everything else, in file order)
- *     with a break every CONFIG.timing.break_every trials
+ *   205 main trials            (everything else, in file order: 60 sat_only,
+ *                               60 fog_only, 30 together, 30 conflict,
+ *                               15 consistency, 10 catch)
+ *     with a break every CONFIG.timing.break_every (41) trials, so 4 breaks
+ *     split the block into 5 equal parts
  *
  * Trial order, pairing, left/right assignment and the predictor values all
- * come from the file. Nothing is randomised here: randomisation happened in
- * build_trials.py, where it was checked by simulation.
+ * come from the frozen v4 trial list. Nothing is randomised, reordered or
+ * resampled here: the design is preregistered.
+ *
+ * The prompt above the images is the only thing here that depends on the
+ * group (participant / control), and it comes from the text files.
  *
  * Each image trial is three nodes: fixation, the pair, a blank. Only the
  * pair is recorded as block 'pairs'.
@@ -35,12 +41,21 @@ var PairsPhase = (function () {
   var _lastPanel = null;
 
   // -----------------------------------------------------------------------
-  // The prompt for a trial. Catch trials name a key; everything else gets
-  // the main question. Both come from the text file, never from the
-  // `instruction` column of trial_list.json — see loader.js.
+  // The prompt for an image trial: the active group's version of
+  // prompt.main. Catch trials have their own screen (below). The v4 trial
+  // list has no `instruction` column; the wording lives in text/.
   // -----------------------------------------------------------------------
   function _prompt() {
-    return Loader.text().prompt.main;
+    return Loader.byGroup(Loader.text().prompt.main);
+  }
+
+  // The markup of an image trial, also used by screen-check.js to measure
+  // whether the real layout fits the window.
+  function trialHTML(promptHTML, leftPath, rightPath) {
+    return '<div class="stim-prompt">' + promptHTML + '</div>' +
+           '<div class="stim-row" style="gap:' + CONFIG.display.gap_px + 'px;">' +
+           _panel(leftPath) + _panel(rightPath) +
+           '</div>';
   }
 
   // -----------------------------------------------------------------------
@@ -119,7 +134,8 @@ var PairsPhase = (function () {
       '<div class="stim-panel' + (chosen ? ' chosen' : '') + '" style="' +
       'width:'  + CONFIG.display.image_px + 'px;' +
       'height:' + CONFIG.display.image_px + 'px;">' +
-      '<img src="' + Loader.imageURL(relativePath) + '" alt="">' +
+      (relativePath
+        ? '<img src="' + Loader.imageURL(relativePath) + '" alt="">' : '') +
       '</div>'
     );
   }
@@ -145,11 +161,7 @@ var PairsPhase = (function () {
 
     nodes.push({
       type: jsPsychHtmlKeyboardResponse,
-      stimulus:
-        '<div class="stim-prompt">' + _prompt() + '</div>' +
-        '<div class="stim-row" style="gap:' + CONFIG.display.gap_px + 'px;">' +
-        _panel(row.left_path) + _panel(row.right_path) +
-        '</div>',
+      stimulus: trialHTML(_prompt(), row.left_path, row.right_path),
       choices: [CONFIG.keys.left, CONFIG.keys.right],
       // No trial_duration: responses are self-paced, with no timeout.
       data: Record.pairTrialData(row),
@@ -283,8 +295,8 @@ var PairsPhase = (function () {
 
     // Preload only the images this session will actually show — which
     // depends on BOTH the block flags and the trial limits. On a full
-    // session that is all of them; on a truncated test it is a handful, so
-    // the upload can be checked without waiting for 63 MB.
+    // session that is all 334; on a truncated test it is a handful, so the
+    // upload can be checked without waiting for ~100 MB.
     var willShow = [];
     if (CONFIG.blocks.practice) willShow = willShow.concat(practice);
     if (CONFIG.blocks.main)     willShow = willShow.concat(main);
@@ -334,5 +346,5 @@ var PairsPhase = (function () {
     return nodes;
   }
 
-  return { buildNodes: buildNodes };
+  return { buildNodes: buildNodes, trialHTML: trialHTML };
 })();

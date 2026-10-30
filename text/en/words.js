@@ -1,56 +1,66 @@
 /* =========================================================================
- * text/en/words.js — the descriptors rated before the image task.
+ * text/en/words.js — the ten words rated in the word-rating task.
  *
- * WHY THIS TASK COMES FIRST
- * -------------------------
- * The ratings are the PREDICTOR: the analysis asks whether someone who
- * rates "foggy" highly also shows a large b_fog in the image task, and
- * whether "lifeless" predicts b_sat. If the images came first, the ratings
- * would be contaminated by what the participant had just spent fifteen
- * minutes looking at, and the predictor would no longer be independent of
- * the outcome.
+ * WHEN THEY ARE RATED
+ * -------------------
+ * After the pair trials and the episode grid block, and before the
+ * normal-appearance grid block. Participants rate how well each word
+ * describes how their surroundings looked during the episode they brought
+ * to mind on the anchoring screen; controls rate how well each word
+ * describes how the surroundings might look to someone experiencing
+ * derealization. Same scale, same grid, for both groups.
  *
- * WHY THERE ARE FILLERS
- * ---------------------
- * Only `foggy` and `lifeless` are targets. The rest are there so that
- * indiscriminate endorsement is detectable: someone who rates every word
- * 5 or 6 is not describing an experience, and their target ratings mean
- * nothing. A spread of visual and non-visual fillers makes that visible.
+ * THE WORDS
+ * ---------
+ * Ten words, shown in a random order per participant (recorded as
+ * word_order). The two TARGETS are `foggy` and `faded`: record.js promotes
+ * them to session-level columns, rating_foggy and rating_faded, so they
+ * sit on every row. The other eight are recorded on the word_ratings row
+ * only.
  *
- * Fillers were chosen to sit AWAY from the two manipulated dimensions.
- * A filler that is itself about colour or clarity would correlate with the
- * targets and defeat the purpose.
- *
- * TWO CAUTIONS IF YOU EDIT THIS LIST
+ * TWO CAUTIONS IF YOU EDIT THIS FILE
  * ----------------------------------
  *  - `id` values become column names in the output (word_foggy, ...) and
- *    are what the analysis joins on. Changing an id after data collection
- *    has started breaks that join. Add or remove items, but do not rename.
- *  - Keep the target ids `foggy` and `lifeless`. record.js promotes those
- *    two to session-level columns so they appear on every trial row.
+ *    must be exactly the registered ones. validate.js refuses to start if
+ *    the ids differ from the registered list or between languages.
+ *  - Only `label` is participant-facing. Change wording there, never ids.
  *
- * The framing rules in instructions.js apply here too: the condition is
- * NAMED, never described, and the question is about how things LOOKED.
+ * GROUP-DEPENDENT STRINGS: `instruction` and `question_short` (one entry
+ * per group). Everything else is shared.
+ *
+ * The framing rules in instructions.js apply to the instruction and the
+ * question (not to the rated words themselves, which are the measure).
  * ========================================================================= */
 
 var WORDS_EN = {
 
   // Shown on its own screen first, so the rating grid itself needs only a
   // one-line reminder and the whole grid fits without scrolling.
-  title: 'Describing your experience',
-  instruction:
-    '<p>Before the main task, we would like to know how you would describe ' +
-    'your experience.</p>' +
-    '<p>On the next screen you will see a list of words. Thinking about ' +
-    '<b>an episode of depersonalization or derealization</b>, rate how well ' +
-    'each word describes how your surroundings <b>looked</b> to you.</p>' +
-    '<p>Some words will not apply at all. That is expected &mdash; please ' +
-    'rate every word anyway.</p>',
+  title: 'Rating words',
+  instruction: {
+    participant:
+      '<p>On the next screen you will see a list of words.</p>' +
+      '<p><b>During that episode, how well does each word describe how your ' +
+      'surroundings looked?</b></p>' +
+      '<p>Rate every word from 0 (not at all) to 6 (exactly). Some words will ' +
+      'not apply at all. That is expected &mdash; please rate every word ' +
+      'anyway.</p>',
+    control:
+      '<p>On the next screen you will see a list of words.</p>' +
+      '<p><b>How well does each word describe how the surroundings might ' +
+      'look to someone experiencing derealization?</b></p>' +
+      '<p>Rate every word from 0 (not at all) to 6 (exactly). Some words will ' +
+      'not apply at all. That is expected &mdash; please rate every word ' +
+      'anyway.</p>',
+  },
 
   // The one-line header above the grid.
-  question_short:
-    'During an episode, how well does each word describe how your ' +
-    'surroundings <b>looked</b>?',
+  question_short: {
+    participant: 'During that episode, how well does each word describe how ' +
+                 'your surroundings looked?',
+    control:     'How well does each word describe how the surroundings might ' +
+                 'look to someone experiencing derealization?',
+  },
 
   button_begin:    'Continue',
   button_submit:   'Continue',
@@ -61,15 +71,15 @@ var WORDS_EN = {
 
   // Presented in random order; the order shown is recorded.
   items: [
-    { id: 'foggy',      label: 'foggy' },        // TARGET
-    { id: 'lifeless',   label: 'lifeless' },     // TARGET
-    { id: 'crowded',    label: 'crowded' },
-    { id: 'echoing',    label: 'echoing' },
-    { id: 'still',      label: 'still' },
-    { id: 'jagged',     label: 'jagged' },
-    { id: 'heavy',      label: 'heavy' },
-    { id: 'warm',       label: 'warm' },
-    { id: 'rushed',     label: 'rushed' },
-    { id: 'cluttered',  label: 'cluttered' },
+    { id: 'foggy',          label: 'foggy' },          // TARGET
+    { id: 'faded',          label: 'faded' },          // TARGET
+    { id: 'veiled',         label: 'veiled' },
+    { id: 'lifeless',       label: 'lifeless' },
+    { id: 'unreal',         label: 'unreal' },
+    { id: 'dreamlike',      label: 'dreamlike' },
+    { id: 'distant',        label: 'distant' },
+    { id: 'like_a_picture', label: 'like a picture' },
+    { id: 'oppressive',     label: 'oppressive' },
+    { id: 'threatening',    label: 'threatening' },
   ],
 };

@@ -2,14 +2,15 @@
  * mock.js — SMOKE TEST ONLY.
  *
  * Six trials of two coloured rectangles, answered with the arrow keys.
- * No stimulus images are loaded, so this runs before the 227 PNGs are
- * committed.
+ * No stimulus images are loaded, so this runs without any stimulus
+ * files (useful for testing the save path on its own).
  *
  * The point is not the task. The point is that these trials produce rows
  * with the SAME column structure the real pair trials will produce, so a
  * successful upload proves the whole output path works.
  *
- * Delete this file once phases/pairs.js is in place.
+ * Superseded by phases/pairs.js; kept only as a dev-menu preset
+ * (CONFIG.blocks.mock, off by default).
  * ========================================================================= */
 
 var MockPhase = (function () {
@@ -25,8 +26,7 @@ var MockPhase = (function () {
     { pair_type: 'fog_only',  left: '#d8d4cc', right: '#6b6f72', a_is_left: false },
     { pair_type: 'conflict',  left: '#a8c0a0', right: '#b09080', a_is_left: true  },
     { pair_type: 'together',  left: '#9aa6b2', right: '#4a5560', a_is_left: false },
-    { pair_type: 'catch',     left: '#7f7f7f', right: '#7f7f7f', a_is_left: true,
-      correct_response: 'right' },
+    { pair_type: 'catch',     left: '#7f7f7f', right: '#7f7f7f', a_is_left: true },
     { pair_type: 'sat_only',  left: '#c0b090', right: '#707070', a_is_left: false },
   ];
 
@@ -98,8 +98,9 @@ var MockPhase = (function () {
             left_path:        'mock/' + pair.left.slice(1) + '.png',
             right_path:       'mock/' + pair.right.slice(1) + '.png',
             a_is_left:        pair.a_is_left,
+            pred_sat:         0, pred_fog: 0,
             d_sat:            0, d_fog: 0, z_sat: 0, z_fog: 0, mag_bin: 1,
-            correct_response: pair.correct_response || null,
+            catch_mode:       pair.pair_type === 'catch' ? 'no_images' : null,
             repeat_of:        null,
             display_px:       CONFIG.display.image_px,
           },

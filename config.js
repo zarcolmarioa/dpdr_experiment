@@ -57,7 +57,7 @@ var CONFIG = {
   // rejection on screen, but it is easy to forget.
   // -----------------------------------------------------------------------
   datapipe: {
-    experiment_id: 'yZIXKcYy54Uw',
+    experiment_id: 'VoYGtg5yKGr2',  // 'yZIXKcYy54Uw',
     osf_project:   'tx5h2',   // recorded for reference only
     osf_component: 'qsv56',   // recorded for reference only
   },
@@ -144,7 +144,7 @@ var CONFIG = {
   //     trial_type column, so that requirement would reject every upload)
   // -----------------------------------------------------------------------
   contact_datapipe: {
-    experiment_id: 'T2jZJusQxUGv',
+    experiment_id: 'T8mzFmXrMcjw',  // 'T2jZJusQxUGv',
     osf_project:   'q3hwn',   // recorded for reference only
     osf_component: 'qt9x8',   // recorded for reference only
   },

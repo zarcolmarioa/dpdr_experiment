@@ -202,15 +202,19 @@ var ParticipantID = (function () {
       return;
     }
 
+    // saved_at = when this file is uploaded (UTC). session_start_time is
+    // the same value as in the response file, and the file name carries
+    // the session start in Japan time — the same stamp as the response
+    // file's name — so the two files of one session match.
     var stamp = new Date().toISOString();
     var header = ['participant_id', 'name', 'email', 'is_test', 'is_dev',
-                  'stimulus_set', 'language', 'saved_at'];
+                  'stimulus_set', 'language', 'session_start_time', 'saved_at'];
     var row = [_id, name, email, _superuser, !!window.DEV_MODE,
-               Loader.stimulusSet(), Loader.language(), stamp];
+               Loader.stimulusSet(), Loader.language(),
+               Record.sessionStartISO(), stamp];
     var csv = header.join(',') + '\n' + row.map(_csvField).join(',') + '\n';
 
-    var filename = 'contact_' + _id + '_' +
-                   stamp.replace(/[:.]/g, '-').slice(0, 19) + '.csv';
+    var filename = 'contact_' + _id + '_' + Record.sessionStamp() + '.csv';
 
     jsPsychPipe.saveData(CONFIG.contact_datapipe.experiment_id, filename, csv)
       .then(function (result) {

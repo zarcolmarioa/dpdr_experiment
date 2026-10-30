@@ -17,14 +17,21 @@ component `qsv56`.
 Each completed session uploads one CSV, named:
 
 ```
-<participant_id>_<stimulus_set>_<timestamp>.csv
-e.g. R_9rJJWk01c767jE8_v4_2026-11-03T05-10-40.csv
+<participant_id>_<stimulus_set>_<session start, Japan time>.csv
+e.g. R_9rJJWk01c767jE8_v4_2026-11-03T14-10-40.csv
 ```
 
-The timestamp is UTC in ISO 8601 format, with `:` and `.` replaced by `-`,
-taken at the moment of upload.
+The stamp is the **start of the session** (when the consent screen
+appeared) in **Japan time** (UTC+9, whatever time zone the participant's
+computer uses), written `YYYY-MM-DDTHH-MM-SS`. It is **the same stamp as in
+that session's contact file** (`contact_<participant_id>_<stamp>.csv`, §15),
+and in the file a participant downloads if the upload fails, so the files
+of one session can be matched by name. It equals `session_start_time`
+(which is in UTC) plus 9 hours.
 
-A full session produces **660 rows and about 123 columns** (one or two more
+Times **inside** the file are UTC (ISO 8601, ending in `Z`).
+
+A full session produces **660 rows and about 128 columns** (one or two more
 rows if ID entry needed a retry).
 
 **Nothing is saved until the very end.** The upload happens after the last
@@ -174,7 +181,17 @@ them: `d.participant_id.str.startswith('NOID_')`.
 | `set_code` | `0` / `1` — the grid set swap, drawn once per session (§8) |
 | `platform` | `github` / `pavlovia` / `local` |
 | `language` | `en` / `ja` |
-| `session_start_time`, `session_end_time` | ISO 8601, UTC. Start = when the consent screen was shown |
+| `session_start_time` | UTC, ISO 8601. When the consent screen appeared. The file names carry this moment in Japan time |
+| `session_end_time` | UTC. When the save step started (after the last screen, before the upload) |
+| `session_duration_s` | whole seconds from `session_start_time` to `session_end_time` |
+| `task_start_time` | UTC. Onset of the first image trial — the first practice trial (or the first pair trial if practice is off) |
+| `task_end_time` | UTC. When the last pair trial was answered |
+| `task_duration_s` | whole seconds from `task_start_time` to `task_end_time`: the image task (practice + 205 pair trials, including breaks). Empty if no image trial ran |
+
+Times of single blocks can be worked out from jsPsych's `time_elapsed`
+(milliseconds since the page loaded, on every row): for example, the
+episode grid block took `time_elapsed` of its last `episode` row minus that
+of its `grid_instructions_episode` row.
 
 ### Display
 
@@ -588,8 +605,12 @@ before anything else happens, so the response files on `qsv56` stay
 pseudonymised. (The consent text tells participants this.)
 
 ```
-contact_<participant_id>_<timestamp>.csv
+contact_<participant_id>_<session start, Japan time>.csv
+e.g. contact_R_9rJJWk01c767jE8_2026-11-03T14-10-40.csv
 ```
+
+The stamp is the **same** as in the session's response file name (§1),
+although the contact file is uploaded earlier.
 
 | column | meaning |
 |---|---|
@@ -597,6 +618,7 @@ contact_<participant_id>_<timestamp>.csv
 | `name`, `email` | as typed. Either may be empty |
 | `is_test`, `is_dev` | same meaning as in the response data |
 | `stimulus_set`, `language` | for convenience |
+| `session_start_time` | UTC — the same value as in the response file, for matching |
 | `saved_at` | UTC time of upload |
 
 No file is written if both fields were left blank, and none for a session

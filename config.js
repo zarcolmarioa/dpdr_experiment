@@ -41,13 +41,37 @@ var CONFIG = {
   // -----------------------------------------------------------------------
   // Hosting platform. Controls how data is saved.
   //
+  //   'auto'     — decided from the address the page is served from:
+  //                  run.pavlovia.org (or any *.pavlovia.org) -> 'pavlovia'
+  //                  *.github.io                              -> 'github'
+  //                  anything else (your own computer)        -> 'local'
+  //                The SAME files then work on GitHub Pages, on Pavlovia
+  //                and on your computer, with nothing to edit.
   //   'local'    — CSV downloads to your own Downloads folder. No upload.
-  //                Use when opening index.html from disk.
-  //   'github'   — uploads via DataPipe to the OSF component. Use when
-  //                hosted on GitHub Pages.
-  //   'pavlovia' — Pavlovia handles saving. Use when hosted on Pavlovia.
+  //   'github'   — uploads via DataPipe to the OSF component.
+  //   'pavlovia' — Pavlovia handles saving (results in the Pavlovia
+  //                project's data/ folder). See SETUP.md, "Pavlovia".
+  //
+  // The value actually used is stamped on every row as `platform`.
   // -----------------------------------------------------------------------
-  platform: 'github',
+  platform: 'auto',
+
+  // -----------------------------------------------------------------------
+  // Where jsPsych 7.1.2, jQuery 2.2.0 and the plugins are loaded from.
+  //
+  //   'bundled'  — our own copy in vendor/ (checked byte-for-byte against
+  //                the official jsPsych 7.1.2 release and jQuery 2.2.0).
+  //                Works everywhere, and is the same on every platform.
+  //   'pavlovia' — the copy Pavlovia serves itself under lib/vendors/
+  //                (as in the earlier Pavlovia experiment). Works ONLY on
+  //                Pavlovia; elsewhere the page cannot start.
+  //
+  // The Pavlovia plugin (jspsych-7-pavlovia-2021.12.js, in the top folder)
+  // is loaded from our copy in both cases, and only on Pavlovia. The
+  // DataPipe plugin is loaded only when something is sent to DataPipe.
+  // Stamped on every row as `libraries`.
+  // -----------------------------------------------------------------------
+  libraries: 'bundled',
 
   // -----------------------------------------------------------------------
   // DataPipe / OSF target.
@@ -86,17 +110,21 @@ var CONFIG = {
   //   collect_name   OPTIONAL for the participant (they may leave it blank).
   //   collect_email  OPTIONAL for the participant.
   //
-  // Name and email are NEVER written to the response data. They are
-  // uploaded as a separate small file (ID + name + email) to a separate
-  // DataPipe experiment and OSF component — see `contact_datapipe` below —
-  // so the response data on OSF stays pseudonymised, and the file that
-  // identifies people can be restricted or deleted on its own. The
-  // response data only records whether each was given (true/false).
-  // If all three are off, the screen is skipped entirely.
+  // With contact_storage 'datapipe' (GitHub Pages), name and email are
+  // NEVER written to the response data. They are uploaded as a separate
+  // small file (ID + name + email) to a separate DataPipe experiment and
+  // OSF component — see `contact_datapipe` below — so the response data on
+  // OSF stays pseudonymised, and the file that identifies people can be
+  // restricted or deleted on its own. The response data only records
+  // whether each was given (true/false).
+  // With contact_storage 'results_file' (Pavlovia) they are kept in the
+  // response file instead — see contact_storage at the end of this block.
+  // If all three fields are off, the screen is skipped entirely.
   //
-  // The contact file is uploaded whenever a name or email is given, on
-  // every platform including local/dev runs, so it can be tested quickly.
-  // Test sessions are flagged is_test / is_dev inside that file too.
+  // With 'datapipe', the contact file is uploaded whenever a name or email
+  // is given, on every platform including local/dev runs, so it can be
+  // tested quickly. Test sessions are flagged is_test / is_dev inside that
+  // file too.
   //
   // NO ID IN THE LINK (allow_manual_id: true, name and email both
   // collected). The participant must give EITHER a valid participant ID
@@ -131,6 +159,24 @@ var CONFIG = {
     collect_id:        true,
     collect_name:      true,
     collect_email:     true,
+
+    // Where a name and email address, if given, are stored.
+    //
+    //   'auto'         — 'results_file' on Pavlovia, 'datapipe' elsewhere.
+    //   'datapipe'     — a separate one-row file, uploaded straight away to
+    //                    contact_datapipe (below). Never in the response
+    //                    file. The response data records contact_saved.
+    //   'results_file' — kept IN the response file, as the columns
+    //                    contact_name and contact_email on the
+    //                    participant_id row, and saved with it at the end.
+    //                    Nothing is sent to DataPipe. Meant for Pavlovia,
+    //                    where the results stay in the private Pavlovia
+    //                    project. NEVER use it with 'github': the response
+    //                    file goes to OSF.
+    //
+    // The consent and ID screens say which applies (the *_results_file
+    // texts). Stamped on every row as `contact_storage`.
+    contact_storage:   'auto',
   },
 
   // -----------------------------------------------------------------------

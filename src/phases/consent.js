@@ -10,7 +10,9 @@
  *                          contact screen (the only other upload) comes
  *                          later. No full screen, no image download either.
  *
- * The wording lives in text/<lang>/instructions.js, section `consent`. It
+ * The wording lives in text/<lang>/instructions.js, section `consent`:
+ * `body`, or `body_results_file` when name and email are kept in the
+ * response file (Pavlovia, Platform.contactStorage() 'results_file'). It
  * is a PLACEHOLDER until the approved text is pasted in; validate.js warns
  * while bracketed gaps remain, and refuses to start a production session
  * (index.html, debug off) with them.
@@ -42,7 +44,9 @@ var ConsentPhase = (function () {
         display.innerHTML =
           '<div class="card consent-card">' +
           '<h2>' + C.title + '</h2>' +
-          '<div class="consent-text">' + C.body + '</div>' +
+          '<div class="consent-text">' +
+          (Platform.contactStorage() === 'results_file'
+            ? C.body_results_file : C.body) + '</div>' +
           '<label class="check-line">' +
           '<input type="checkbox" id="consent-checkbox">' +
           '<span>' + C.checkbox + '</span>' +

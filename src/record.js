@@ -93,7 +93,11 @@ var Record = (function () {
     jsPsych.data.addProperties({
       experiment_name:      CONFIG.experiment.name,
       experiment_version:   CONFIG.experiment.version,
-      platform:             CONFIG.platform,
+      // The platform actually used (CONFIG.platform 'auto' resolved), where
+      // name/email are kept, and where the libraries came from.
+      platform:             Platform.name(),
+      contact_storage:      Platform.contactStorage(),
+      libraries:            Platform.libraries(),
       language:             Loader.language(),
 
       // From the invitation link. group decides the wording of four

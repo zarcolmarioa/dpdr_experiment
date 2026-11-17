@@ -120,7 +120,11 @@ var PairsPhase = (function () {
         stimulus: html,
         choices: 'ALL_KEYS',
         data: base,
-        on_finish: function (data) { Record.finishCatchTrial(data); },
+        on_load: function () { Record.markTaskStart(); },
+        on_finish: function (data) {
+          Record.finishCatchTrial(data);
+          Record.markTaskEnd();
+        },
       },
     ];
   }
@@ -166,6 +170,8 @@ var PairsPhase = (function () {
       // No trial_duration: responses are self-paced, with no timeout.
       data: Record.pairTrialData(row),
       on_load: function () {
+        // Task start = onset of the first image trial (task_start_time).
+        Record.markTaskStart();
         var el = document.querySelector('.stim-panel');
         if (el) {
           var r = el.getBoundingClientRect();
@@ -175,6 +181,8 @@ var PairsPhase = (function () {
       on_finish: function (data) {
         data.panel_rendered_px = _lastPanel;
         Record.finishPairTrial(data);
+        // Task end = answer to the last pair trial (the last call wins).
+        Record.markTaskEnd();
       },
     });
 

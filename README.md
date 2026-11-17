@@ -128,6 +128,12 @@ byte-identical copies of the archived originals in
 `drl2drv_updated/data_trials/` (see `SETUP.md` §5 for the check). Never
 edit, re-encode, resize or rename anything in them.
 
+**File names match within a session.** The response file
+(`<ID>_v4_<stamp>.csv`) and the contact file (`contact_<ID>_<stamp>.csv`)
+carry the same stamp: the session start in Japan time. Times inside the
+files are UTC; `session_duration_s` and `task_duration_s` give the length
+of the session and of the image task (see `DATA_DICTIONARY.md` §1, §5).
+
 **`pair_type`, not `trial_type`.** jsPsych writes its own `trial_type` column
 holding the plugin name. The design label from `trial_list.json` is renamed
 to `pair_type` on output so the two do not collide. Analyse on `pair_type`.

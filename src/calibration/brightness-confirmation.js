@@ -19,6 +19,15 @@
 // The continue button stays disabled until the checkbox is ticked, so the
 // participant has to act rather than click through.
 //
+// VIEWING CONDITIONS NOTE (brightness_filters)
+// --------------------------------------------
+// A short paragraph under the brightness request asks participants, if
+// they can, to switch off night mode, blue-light or colour filters, and
+// tells them not to worry if they do not know whether these are on or how
+// to switch them off. Such filters shift colour, which is one of the two
+// manipulated features. Nothing about it is confirmed or recorded: the
+// checkbox is about brightness only.
+//
 // OUTPUT (jsPsych data, session-level):
 //   brightness_confirmed  bool
 // =============================================================================
@@ -41,6 +50,9 @@ var BrightnessConfirmation = (function () {
           '<h2>' + T.brightness_title + '</h2>' +
 
           T.brightness_intro +
+
+          // Viewing-conditions note. Not confirmed, not recorded.
+          '<div class="calib-note">' + T.brightness_filters + '</div>' +
 
           '<label class="check-line">' +
           '<input type="checkbox" id="brightness-checkbox">' +

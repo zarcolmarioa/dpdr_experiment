@@ -1,20 +1,43 @@
 /* =========================================================================
  * main.js — assembles the timeline and runs it.
  *
- * Structure of a session (smoke test version):
- *   1. participant ID
- *   2. mock trials
- *   3. save  (DataPipe / Pavlovia / local download)
- *   4. completion screen, showing whether the upload succeeded
+ * Before anything: the GROUP must come from the link (?group=participant
+ * or ?group=control). Without a valid one the session does not start; it
+ * shows the "incomplete link" screen and nothing is recorded.
  *
- * The full experiment adds consent, calibration, word ratings, preload,
- * the real pair trials, the grid block and the final questions between
- * steps 1 and 3. Nothing about the save path changes.
+ * A session, the same for both groups (each step has its own switch in
+ * config.js):
+ *    1. consent                      phases/consent.js     blocks.consent
+ *       "I do not agree" ends the session here, nothing uploaded.
+ *    2. full screen + window check   calibration/screen-check.js
+ *       a window too small for the trial layout STOPS the session here,
+ *       before the ID screen, so nothing is uploaded.
+ *       On Pavlovia the Pavlovia session is opened only after this step,
+ *       so a declined or stopped session never opens one.
+ *    3. participant ID (+ optional name/email: uploaded separately, or on
+ *       Pavlovia kept in the response file — see Platform.contactStorage)
+ *       -> the background image download starts after this screen
+ *    4. brightness confirmation      calibration/brightness-confirmation.js
+ *    5. gamma matching               calibration/gamma.js
+ *    6. anchoring                    phases/anchoring.js   blocks.anchoring
+ *    7. practice                     phases/pairs.js       blocks.practice
+ *    8. pair trials (205)            phases/pairs.js       blocks.main
+ *    9. episode grid block           phases/grid.js        blocks.grid_episode
+ *   10. word ratings                 phases/words.js       blocks.words
+ *   11. normal-appearance grid block phases/grid.js        blocks.grid_normal
+ *   12. state items (optional)       phases/state.js       blocks.state
+ *   13. save  (DataPipe / Pavlovia / local download), by Platform.name()
+ *   14. completion screen, showing whether the upload succeeded
+ *
+ * Session-level stamps on every row: experiment, group, interview_date,
+ * set_code (the grid set swap, drawn once here), display, consent_given,
+ * participant_id / is_test, the target word ratings, the closing stamps.
  * ========================================================================= */
 
 /* global CONFIG, ParticipantID, Record, MockPhase, PairsPhase, WordsPhase, GridPhase,
+          ConsentPhase, AnchoringPhase, StatePhase,
           ScreenCheck, BrightnessConfirmation, GammaCalibration,
-          Loader, Validate, DevMenu, TEXT_EN, TEXT_JA,
+          Loader, Validate, DevMenu, Platform, TEXT_EN, TEXT_JA,
           initJsPsych, jsPsychHtmlKeyboardResponse, jsPsychSurveyText,
           jsPsychCallFunction, jsPsychFullscreen, jsPsychPreload,
           jsPsychHtmlButtonResponse, jsPsychSurveyLikert, jsPsychSurveyHtmlForm,
@@ -26,21 +49,53 @@
 // an explicit node in _buildSaveNodes() instead.
 var jsPsych = initJsPsych({});
 
-// Holds whatever DataPipe reports back, so the completion screen can show it.
-// status: 'saved' | 'queued' | 'failed' — see ParticipantID.pipeStatus().
+// Holds whatever the save step reports back, so the completion screen can
+// show it.
+// status: 'saved' | 'queued' | 'failed' — DataPipe, see ParticipantID.pipeStatus()
+//         'pavlovia' — Pavlovia confirmed the upload (experiment RUNNING)
+//         'pilot'    — Pavlovia pilot run: the CSV was downloaded to this
+//                      computer instead, nothing is stored on Pavlovia
 var UPLOAD_RESULT = { attempted: false, success: null, status: null, detail: '' };
 
+// What Pavlovia said when the session was opened.
+//   status  the experiment's status ('RUNNING', 'PILOTING', ...)
+//   pilot   true for a pilot run (?__pilotToken= in the link, or the
+//           experiment not RUNNING): the plugin then downloads the CSV
+//           instead of storing it on Pavlovia.
+var PAVLOVIA = { opened: false, status: null, pilot: null, error: '' };
+
+function _describe(x) {
+  if (x instanceof Error) return x.name + ': ' + x.message;
+  try { return JSON.stringify(x); } catch (e) { return String(x); }
+}
+
 // ---------------------------------------------------------------------------
-// Pavlovia init node — must be the first thing in the timeline.
+// Pavlovia init node: opens the Pavlovia session (and the "leave this
+// page?" warning). Placed AFTER consent and the window check, so a
+// participant who declines or is stopped there never opens a session.
+// If it fails, the session carries on and the save step reports the
+// failure, so the participant can still download their responses.
 // ---------------------------------------------------------------------------
 function _buildPavloviaInit() {
-  if (CONFIG.platform !== 'pavlovia') return [];
+  if (Platform.name() !== 'pavlovia') return [];
   return [{
     type: jsPsychPavlovia,
     command: 'init',
     setPavloviaInfo: function (info) {
-      console.log('[Pavlovia] Initialised:', info);
+      var session = (info && info.session) || {};
+      PAVLOVIA.opened = true;
+      PAVLOVIA.status = session.status || null;
+      PAVLOVIA.pilot  = Platform.isPavloviaPilotLink() ||
+                        PAVLOVIA.status !== 'RUNNING';
+      console.log('[Pavlovia] Session opened (status ' + PAVLOVIA.status +
+                  (PAVLOVIA.pilot ? ', PILOT: the CSV will be downloaded, ' +
+                                    'not stored on Pavlovia' : '') + ').', info);
     },
+    errorCallback: function (error) {
+      PAVLOVIA.error = _describe(error);
+      console.error('[Pavlovia] Could not open a session:', error);
+    },
+    data: { block: 'pavlovia_init' },
   }];
 }
 
@@ -71,9 +126,11 @@ function _buildSaveNodes() {
     },
   });
 
+  var platform = Platform.name();
+
   // Local mode: nothing is uploaded, so the CSV is downloaded here, BEFORE
   // the completion screen (which never ends by itself).
-  if (CONFIG.platform === 'local') {
+  if (platform === 'local') {
     nodes.push({
       type: jsPsychCallFunction,
       func: function () {
@@ -84,7 +141,22 @@ function _buildSaveNodes() {
     });
   }
 
-  if (CONFIG.platform === 'github') {
+  if (platform === 'github' && typeof jsPsychPipe === 'undefined') {
+    // The DataPipe plugin did not load (e.g. unpkg.com unreachable).
+    // Report a failed upload, so the completion screen offers the
+    // download-and-email fallback instead of the session stalling here.
+    nodes.push({
+      type: jsPsychCallFunction,
+      func: function () {
+        UPLOAD_RESULT.attempted = true;
+        UPLOAD_RESULT.success   = false;
+        UPLOAD_RESULT.status    = 'failed';
+        UPLOAD_RESULT.detail    = 'DataPipe plugin not loaded';
+        console.error('[DataPipe] plugin not loaded — nothing uploaded.');
+      },
+    });
+
+  } else if (platform === 'github') {
     nodes.push({
       type:          jsPsychPipe,
       action:        'save',
@@ -113,15 +185,46 @@ function _buildSaveNodes() {
       },
     });
 
-  } else if (CONFIG.platform === 'pavlovia') {
+  } else if (platform === 'pavlovia') {
     nodes.push({
       type: jsPsychPavlovia,
       command: 'finish',
+      // Pavlovia names the file <project>_<participantId>_SESSION_<date>.csv.
+      // participantId carries the same ID, set and Japan-time stamp as the
+      // DataPipe file name, e.g. R_xxx_v4_2026-10-30T14-12-40.
+      participantId: function () {
+        return Record.sessionFilename(ParticipantID.get() || 'NOID')
+                     .replace(/\.csv$/, '');
+      },
       dataFilter: function (data) { return data; },
+      // The plugin shows its own English "Please wait..." while uploading.
+      // Replace it with the same saving screen as on GitHub, in the
+      // participant's language. (The plugin writes its message as soon as
+      // the upload starts; this runs straight after.)
+      on_start: function () {
+        setTimeout(function () {
+          if (document.getElementById('pavlovia-data-upload')) {
+            jsPsych.getDisplayElement().innerHTML = Loader.text().end.saving;
+          }
+        }, 0);
+      },
       completedCallback: function () {
         UPLOAD_RESULT.attempted = true;
-        UPLOAD_RESULT.success = true;
-        console.log('[Pavlovia] Data submitted.');
+        UPLOAD_RESULT.success   = true;
+        UPLOAD_RESULT.status    = PAVLOVIA.pilot ? 'pilot' : 'pavlovia';
+        console.log(PAVLOVIA.pilot
+          ? '[Pavlovia] Pilot run: the CSV was downloaded to this computer, ' +
+            'not stored on Pavlovia.'
+          : '[Pavlovia] Data uploaded and session closed.');
+      },
+      // Any failure (no session, upload refused, network): the completion
+      // screen offers the download-and-email fallback.
+      errorCallback: function (error) {
+        UPLOAD_RESULT.attempted = true;
+        UPLOAD_RESULT.success   = false;
+        UPLOAD_RESULT.status    = 'failed';
+        UPLOAD_RESULT.detail    = _describe(error);
+        console.error('[Pavlovia] Saving failed:', error);
       },
     });
   }
@@ -153,6 +256,10 @@ function _contactHTML() {
 
 // Debug wording for an upload outcome.
 function _statusHTML(status) {
+  if (status === 'pavlovia') return '<span class="ok">SAVED on Pavlovia &mdash; ' +
+                                    'in the project\'s data/ folder</span>';
+  if (status === 'pilot')  return '<span class="ok">PILOTING &mdash; file downloaded ' +
+                                  'to this computer, not stored on Pavlovia</span>';
   if (status === 'saved')  return '<span class="ok">SAVED &mdash; on OSF now</span>';
   if (status === 'queued') return '<span class="ok">RECEIVED by DataPipe &mdash; ' +
                                   'OSF upload pending, DataPipe retries automatically. ' +
@@ -168,7 +275,8 @@ function _buildCompletionNode() {
     stimulus: function () {
       var E = Loader.text().end;
       var contact = _contactHTML();
-      var failed = (CONFIG.platform !== 'local') &&
+      var platform = Platform.name();
+      var failed = (platform !== 'local') &&
                    !(UPLOAD_RESULT.attempted && UPLOAD_RESULT.success);
       var html;
 
@@ -189,24 +297,48 @@ function _buildCompletionNode() {
       if (CONFIG.debug) {
         html += '<hr><div class="debug-box">';
         html += '<p><b>Debug — not shown to participants</b></p>';
-        html += '<p>Platform: <code>' + CONFIG.platform + '</code></p>';
+        html += '<p>Platform: <code>' + platform + '</code> (setting <code>' +
+                CONFIG.platform + '</code>), libraries: <code>' +
+                Platform.libraries() + '</code></p>';
         html += '<p>Participant: <code>' +
                 (ParticipantID.get() || 'none') + '</code>' +
                 (ParticipantID.isSuperuser() ? ' (test session)' : '') + '</p>';
-        html += '<p>Contact upload (to ' + CONFIG.contact_datapipe.experiment_id +
-                '): ' + _statusHTML(ParticipantID.contactStatus()) + '</p>';
+        if (Platform.contactStorage() === 'results_file') {
+          html += '<p>Name/email: kept in the response file ' +
+                  '(contact_storage <code>results_file</code>), nothing sent ' +
+                  'to DataPipe.</p>';
+        } else {
+          html += '<p>Contact upload (to ' + CONFIG.contact_datapipe.experiment_id +
+                  '): ' + _statusHTML(ParticipantID.contactStatus()) + '</p>';
+        }
         if (ParticipantID.contactReply()) {
           html += '<pre>' + ParticipantID.contactReply()
                     .replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
         }
 
-        if (CONFIG.platform === 'local') {
+        if (platform === 'pavlovia') {
+          html += '<p>Pavlovia session: ' + (PAVLOVIA.opened
+                    ? 'opened, experiment status <code>' + PAVLOVIA.status + '</code>'
+                    : '<span class="fail">NOT opened</span>') + '</p>';
+          if (PAVLOVIA.error) {
+            html += '<pre>' + PAVLOVIA.error.replace(/&/g, '&amp;')
+                                            .replace(/</g, '&lt;') + '</pre>';
+          }
+        }
+
+        if (platform === 'local') {
           html += '<p>Local mode — CSV downloaded, nothing uploaded.</p>';
         } else if (!UPLOAD_RESULT.attempted) {
           html += '<p class="fail">No upload was attempted.</p>';
         } else if (UPLOAD_RESULT.success) {
-          html += '<p>Responses upload (to ' + CONFIG.datapipe.experiment_id +
-                  '): ' + _statusHTML(UPLOAD_RESULT.status) + '</p>';
+          html += '<p>' + (platform === 'pavlovia' ? 'Responses' :
+                  'Responses upload (to ' + CONFIG.datapipe.experiment_id + ')') +
+                  ': ' + _statusHTML(UPLOAD_RESULT.status) + '</p>';
+        } else if (platform === 'pavlovia') {
+          html += '<p class="fail">Saving to Pavlovia FAILED. Check that the ' +
+                  'experiment is RUNNING (or PILOTING) on Pavlovia, that it ' +
+                  'has credits or a licence, and that config.json was ' +
+                  'created when it was activated.</p>';
         } else {
           html += '<p class="fail">Upload FAILED. Check that ' +
                   '&ldquo;Enable data collection&rdquo; is switched on for ' +
@@ -214,7 +346,8 @@ function _buildCompletionNode() {
                   '</code> on the DataPipe dashboard.</p>';
         }
         if (UPLOAD_RESULT.detail) {
-          html += '<pre>' + UPLOAD_RESULT.detail + '</pre>';
+          html += '<pre>' + UPLOAD_RESULT.detail.replace(/&/g, '&amp;')
+                                                .replace(/</g, '&lt;') + '</pre>';
         }
         html += '</div>';
       }
@@ -230,6 +363,76 @@ function _buildCompletionNode() {
         var done = document.getElementById('end-download-done');
         if (done) done.style.display = 'block';
       });
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The grid set swap, drawn ONCE per session with p = .5 and used for the
+// whole session (interface_spec.md: rule random_recorded). dev.html may fix
+// it with ?set_code=0 or 1, for testing both arrangements; index.html never
+// reads that parameter.
+// ---------------------------------------------------------------------------
+function _drawSetCode() {
+  if (window.DEV_MODE) {
+    var forced = new URLSearchParams(window.location.search).get('set_code');
+    if (forced === '0' || forced === '1') return parseInt(forced, 10);
+  }
+  return (Math.random() < 0.5) ? 0 : 1;
+}
+
+// ---------------------------------------------------------------------------
+// "Incomplete link": no valid ?group=. The same kind of message as a
+// missing participant ID. Nothing is recorded or uploaded.
+// ---------------------------------------------------------------------------
+function _runIncompleteLink() {
+  var L = Loader.text().link;
+  console.warn('[Main] ?group= is missing or invalid (expected one of ' +
+               CONFIG.groups.join(', ') + ') — session not started.');
+  jsPsych.run([{
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '<div class="card"><h2>' + L.missing_title + '</h2>' +
+              L.missing_body + '</div>',
+    choices: 'NO_KEYS',
+    data: { block: 'link_incomplete' },
+  }]);
+}
+
+// ---------------------------------------------------------------------------
+// Start the image download in the BACKGROUND. Does not block: the
+// participant carries on with calibration and the anchoring screen while
+// the images arrive. Each block's preload gate then waits for whatever is
+// still missing. Pair images first (needed first), then the episode grid's
+// set, then the normal grid's.
+// ---------------------------------------------------------------------------
+function _buildBackgroundPreload(setCode) {
+  return {
+    type: jsPsychCallFunction,
+    func: function () {
+      try {
+        var urls = [];
+        if (CONFIG.blocks.practice || CONFIG.blocks.main) {
+          urls = urls.concat(Loader.preloadURLs());
+        }
+        if (Loader.hasGrid()) {
+          ['episode', 'normal'].forEach(function (b) {
+            if (!CONFIG.blocks['grid_' + b]) return;
+            Loader.gridScreens(Loader.gridSceneSet(b, setCode)).forEach(function (s) {
+              s.rows.forEach(function (r) {
+                r.images.forEach(function (p) { urls.push(Loader.gridImageURL(p)); });
+              });
+            });
+          });
+        }
+        if (urls.length) jsPsych.pluginAPI.preloadImages(urls);
+        if (CONFIG.debug) {
+          console.log('[Preload] background download started (' +
+                      urls.length + ' images).');
+        }
+      } catch (e) {
+        console.warn('[Preload] background start failed; the gates will ' +
+                     'download them instead.', e);
+      }
     },
   };
 }
@@ -257,16 +460,20 @@ function runExperiment() {
     }
   }, false);
 
-  timeline = timeline.concat(_buildPavloviaInit());
-  timeline = timeline.concat(ParticipantID.buildNodes(jsPsych));
+  // No valid group in the link: do not start.
+  if (!Loader.group()) {
+    _runIncompleteLink();
+    return;
+  }
 
-  // Stamp the session properties once the ID is known.
+  var setCode = _drawSetCode();
+
+  // Session properties, stamped first so they reach every row (jsPsych's
+  // addProperties also covers rows recorded later).
   timeline.push({
     type: jsPsychCallFunction,
     func: function () {
-      Record.stampSessionStart(
-        jsPsych, ParticipantID.get(), ParticipantID.isSuperuser()
-      );
+      Record.stampSessionStart(jsPsych, setCode);
       // Mark anything started from dev.html, or run with a trial limit, so
       // it can never be mistaken for a real session.
       jsPsych.data.addProperties({
@@ -276,11 +483,35 @@ function runExperiment() {
     },
   });
 
-  // Fullscreen, viewport gate, and the stimulus size check.
+  // 1. Consent. Declining ends the session here with nothing uploaded.
+  if (CONFIG.blocks.consent) {
+    timeline = timeline.concat(ConsentPhase.buildNodes(jsPsych));
+  }
+
+  // 2. Full screen, window check (hard stop), and the dev size check.
+  //    Before the ID screen, so a stopped participant has uploaded nothing.
   timeline = timeline.concat(ScreenCheck.buildNodes(jsPsych));
 
-  // Display calibration. Order matters: brightness first, because the gamma
-  // match is judged by eye and a dimmed screen would bias it.
+  // Pavlovia only: open the Pavlovia session now — after consent and the
+  // window check, so neither a decline nor a stop opens one.
+  timeline = timeline.concat(_buildPavloviaInit());
+
+  // 3. Participant ID, then stamp it.
+  timeline = timeline.concat(ParticipantID.buildNodes(jsPsych));
+  timeline.push({
+    type: jsPsychCallFunction,
+    func: function () {
+      Record.stampParticipant(jsPsych, ParticipantID.get(),
+                              ParticipantID.isSuperuser());
+    },
+  });
+
+  // Start downloading the stimuli in the background, early, so they are
+  // usually cached by the time the practice and the grid blocks need them.
+  timeline.push(_buildBackgroundPreload(setCode));
+
+  // 4-5. Display calibration. Order matters: brightness first, because the
+  // gamma match is judged by eye and a dimmed screen would bias it.
   if (CONFIG.calibration.brightness) {
     timeline = timeline.concat(BrightnessConfirmation.getNodes(jsPsych));
   }
@@ -288,52 +519,40 @@ function runExperiment() {
     timeline = timeline.concat(GammaCalibration.getNodes(jsPsych));
   }
 
-  // Start downloading the stimuli in the BACKGROUND. This does not block:
-  // the participant carries on with the screens above while the images
-  // arrive. PairsPhase then gates on completion just before practice.
-  timeline.push({
-    type: jsPsychCallFunction,
-    func: function () {
-      try {
-        // Pair images only if a pair block runs; grid images only if the
-        // grid runs. Order matters: the pairs are needed first.
-        var urls = [];
-        if (CONFIG.blocks.practice || CONFIG.blocks.main) {
-          urls = urls.concat(Loader.preloadURLs());
-        }
-        if (CONFIG.blocks.grid && Loader.hasGrid()) {
-          urls = urls.concat(Loader.gridPreloadURLs());
-        }
-        if (urls.length) jsPsych.pluginAPI.preloadImages(urls);
-        if (CONFIG.debug) {
-          console.log('[Preload] background download started (' +
-                      urls.length + ' images).');
-        }
-      } catch (e) {
-        console.warn('[Preload] background start failed; the gate will ' +
-                     'download them instead.', e);
-      }
-    },
-  });
-
-  // Descriptor ratings. These are the PREDICTOR, so they must come before
-  // the image task: rated afterwards, they would be contaminated by what
-  // the participant had just spent fifteen minutes looking at.
-  if (CONFIG.blocks.words) {
-    timeline = timeline.concat(WordsPhase.buildNodes(jsPsych));
+  // 6. Anchoring: the episode (participants) or the imagined experience
+  // (controls) that every later judgment is about.
+  if (CONFIG.blocks.anchoring) {
+    timeline = timeline.concat(AnchoringPhase.buildNodes(jsPsych));
   }
 
+  // 7-8. Practice and the pair trials.
   if (CONFIG.blocks.mock) {
     timeline = timeline.concat(MockPhase.buildNodes(jsPsych));
   } else {
     timeline = timeline.concat(PairsPhase.buildNodes(jsPsych));
   }
 
-  // Grid block, after all pair trials. Returns nothing for sets without a
-  // grid (see CONFIG.data.grid_sets).
-  if (CONFIG.blocks.grid) {
-    timeline = timeline.concat(GridPhase.buildNodes(jsPsych));
+  // 9. Episode grid block.
+  if (CONFIG.blocks.grid_episode) {
+    timeline = timeline.concat(GridPhase.buildNodes(jsPsych, 'episode', setCode));
   }
+
+  // 10. Word ratings — after the image task and the episode grid.
+  if (CONFIG.blocks.words) {
+    timeline = timeline.concat(WordsPhase.buildNodes(jsPsych));
+  }
+
+  // 11. Normal-appearance grid block.
+  if (CONFIG.blocks.grid_normal) {
+    timeline = timeline.concat(GridPhase.buildNodes(jsPsych, 'normal', setCode));
+  }
+
+  // 12. State items (optional block).
+  if (CONFIG.blocks.state) {
+    timeline = timeline.concat(StatePhase.buildNodes(jsPsych));
+  }
+
+  // 13-14. Save and completion.
   timeline = timeline.concat(_buildSaveNodes());
   timeline.push(_buildCompletionNode());
 

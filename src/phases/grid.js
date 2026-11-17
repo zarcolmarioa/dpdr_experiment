@@ -1,87 +1,103 @@
 /* =========================================================================
- * grid.js — the grid block, run after the pairwise trials.
+ * grid.js — the two grid blocks, driven by the v4 grid package:
  *
- * Driven entirely by the active set's grid files:
- *
- *     data/sets/<set>/grid/grid_trials.json   one record per screen
- *     data/sets/<set>/grid/preload.json       every image those use
+ *     data/sets/<set>/grid/grid_trials.json   blocks, set_assignment,
+ *                                             layout, and sets A and B
+ *     data/sets/<set>/grid/preload.json       {"images": [...]}
  *     data/sets/<set>/grid/stimuli/*.png
+ *     data/sets/<set>/grid/interface_spec.md  THE CONTRACT this file follows
  *
- * Only sets listed in CONFIG.data.grid_sets have a grid. For any other set
- * the block is skipped silently, so adding a grid to a set later means
- * dropping its files in place and adding its name to that list.
+ * The grid is DESCRIPTIVE ONLY: nothing recorded here enters a registered
+ * test.
  *
- * STRUCTURE
+ * TWO BLOCKS (CONFIG.blocks.grid_episode / grid_normal, separately)
+ *   episode   after the pair trials. "None of these" button; after a screen
+ *             answered "None of these", an optional follow-up "Which comes
+ *             closest?" with five position-based options
+ *             (CONFIG.blocks.grid_none_followup). Question is
+ *             group-dependent.
+ *   normal    after the word ratings. No "None" button, so no follow-up.
+ *             The same question for both groups.
+ *
+ * DEPARTURE FROM interface_spec.md, by design decision: the spec's free
+ * text after "None of these" (free_text) is replaced by clickable options
+ * (none_detail), so no open question — and no visual words — come just
+ * before the word ratings. The package itself is unchanged.
+ *
+ * THE SET SWAP
+ *   main.js draws set_code = 0 or 1 (p = .5) once at session start, stamps
+ *   it on every row, and passes it here. From the package's set_assignment:
+ *     code 0 -> episode block shows set A, normal block shows set B
+ *     code 1 -> episode block shows set B, normal block shows set A
+ *   so no photograph appears in both blocks.
+ *
+ * EACH BLOCK
  *   preload gate   (usually instant — main.js started the download early)
- *   instructions
- *   one screen per record, in FILE ORDER. Nothing is shuffled here: screen
- *   order and column direction (forward / reversed) are set in the file.
- *   optional free-text question — coded but OFF (CONFIG.blocks.grid_none_text)
+ *   instructions   (one short screen, adapted to the block)
+ *   the set's 4 screens, in `screen` order. Nothing is shuffled.
  *
  * ONE SCREEN
- *   Rows are scenes, columns are levels of one change. No labels, numbers
- *   or arrows. Clicking anywhere in a column selects the whole column.
- *   "None of these" is a separate button underneath. Continue is enabled
- *   once something is selected; the choice can be changed until then.
- *   Mouse only, no time limit.
+ *   Rows are scenes, columns are levels of one change. `columns` in the
+ *   file is ALREADY the display order (forward or reversed as shipped) and
+ *   is drawn exactly as listed — never reversed again here. No labels,
+ *   numbers or arrows. A click anywhere in a column selects the whole
+ *   column. Continue is enabled once something is selected; the choice can
+ *   be changed until then. Mouse only, no time limit.
  *
  * CELL SIZE
- *   Computed once per session from the viewport, so every screen uses the
- *   same size, and computed for the WIDEST screen in the file, so a 5-column
- *   screen is not shown larger than a 6-column one. Capped at
- *   CONFIG.grid.max_cell_px. It is NOT fixed like the pair panels — six
- *   columns of 512 px cannot fit any laptop — so the rendered size is
- *   recorded on every row (grid_cell_px) as a covariate.
+ *   ONE size per block, computed when the block starts, from the window and
+ *   the WIDEST screen in the package (interface_spec.md):
+ *     byWidth  = (innerWidth  - 48  - (cols-1)*22) / cols - 14
+ *     byHeight = (innerHeight - 190 - (rows-1)*6)  / rows
+ *     cell     = max(100, floor(min(byWidth, byHeight, 240)))
+ *   The constants are CONFIG.grid, checked against the package's `layout`
+ *   by validate.js. The computed size is recorded as cell_px.
  *
- * DATA — one row per screen, block = 'grid'. See DATA_DICTIONARY.md §7b.
+ * DATA — one row per screen, 4 per block, 8 per session. The fields of
+ * interface_spec.md, with none_detail in place of free_text: block
+ * ('episode' / 'normal'), set_code, scene_set, screen, feature,
+ * column_order, scene_ids, chosen_display_column, chosen_level_index,
+ * chose_none, none_detail (beyond_left / beyond_right / between /
+ * other_way / cant_say, or empty), rt_ms, cell_px, inner_w, inner_h.
+ * Level parameters and measured features are
+ * NOT copied into the data: they are in grid_trials.csv, keyed by set,
+ * screen, row and column. See DATA_DICTIONARY.md §8.
  * ========================================================================= */
 
 var GridPhase = (function () {
 
-  var _cellPx      = null;   // computed once, reused on every screen
-  var _anyNone     = false;  // drives the (inactive) free-text question
-
-  function _cfg() {
-    var g = CONFIG.grid || {};
-    return {
-      max_cell_px: g.max_cell_px || 240,
-      min_cell_px: g.min_cell_px || 100,
-      row_gap_px:  g.row_gap_px  || 6,
-      col_gap_px:  g.col_gap_px  || 22,
-      chrome_px:   g.chrome_px   || 190,   // question + buttons + margins
-    };
-  }
-
   // -----------------------------------------------------------------------
-  // Cell size from the viewport, for the widest screen in the file.
+  // Cell size from the window, for the widest screen in the package.
   // -----------------------------------------------------------------------
-  function _computeCell(screens) {
-    var c = _cfg();
+  function _computeCell() {
+    var c = CONFIG.grid;
     var maxCols = 1, maxRows = 1;
-    screens.forEach(function (s) {
+    Loader.gridAllScreens().forEach(function (s) {
       maxCols = Math.max(maxCols, s.columns.length);
       maxRows = Math.max(maxRows, s.rows.length);
     });
 
-    // Each column carries 2 x (3 px border + 4 px padding) of its own.
-    var colChrome = 14;
-    var byWidth  = (window.innerWidth - 48 - (maxCols - 1) * c.col_gap_px) / maxCols - colChrome;
-    var byHeight = (window.innerHeight - c.chrome_px - (maxRows - 1) * c.row_gap_px) / maxRows;
+    var byWidth  = (window.innerWidth - c.page_side_px - (maxCols - 1) * c.col_gap_px) /
+                   maxCols - c.cell_chrome_px;
+    var byHeight = (window.innerHeight - c.chrome_px - (maxRows - 1) * c.row_gap_px) /
+                   maxRows;
 
     var px = Math.floor(Math.min(byWidth, byHeight, c.max_cell_px));
     return Math.max(px, c.min_cell_px);
   }
 
   // -----------------------------------------------------------------------
-  // Markup for one screen.
+  // Markup for one screen. Columns are drawn in file order, which IS the
+  // display order.
   // -----------------------------------------------------------------------
-  function _screenHTML(screen, T, index, total) {
-    var c = _cfg();
+  function _screenHTML(screen, question, showNone, index, total, cellPx) {
+    var T = Loader.text().grid;
+    var c = CONFIG.grid;
     var cols = screen.columns.map(function (col, ci) {
       var cells = screen.rows.map(function (row) {
         return '<img class="grid-cell" draggable="false" alt="" src="' +
                Loader.gridImageURL(row.images[ci]) + '" style="width:' +
-               _cellPx + 'px;height:' + _cellPx + 'px;">';
+               cellPx + 'px;height:' + cellPx + 'px;">';
       }).join('');
       return '<div class="grid-col" data-col="' + ci + '" style="gap:' +
              c.row_gap_px + 'px;">' + cells + '</div>';
@@ -89,51 +105,108 @@ var GridPhase = (function () {
 
     return (
       '<div class="grid-wrap">' +
-      '<div class="stim-prompt grid-question">' + T.grid.question + '</div>' +
+      '<div class="stim-prompt grid-question">' + question + '</div>' +
       '<div class="grid-cols" style="gap:' + c.col_gap_px + 'px;">' + cols + '</div>' +
       '<div class="grid-foot">' +
-      '<button id="grid-none" class="grid-none" type="button">' + T.grid.none + '</button>' +
+      (showNone
+        ? '<button id="grid-none" class="grid-none" type="button">' + T.none + '</button>'
+        : '') +
       '<span class="grid-progress">' +
-      T.grid.progress.replace('{DONE}', String(index + 1))
-                     .replace('{TOTAL}', String(total)) +
+      T.progress.replace('{DONE}', String(index + 1))
+                .replace('{TOTAL}', String(total)) +
       '</span>' +
       '<button id="grid-continue" class="calib-btn" type="button" disabled>' +
-      T.grid.button_continue + '</button>' +
+      T.button_continue + '</button>' +
       '</div>' +
       '</div>'
     );
+  }
+
+  // The follow-up shown after a screen answered "None of these" (episode
+  // block, CONFIG.blocks.grid_none_followup — one switch for the question
+  // and all its options): "Which comes closest?". Not required. Recorded on
+  // the same row as none_detail.
+  //
+  // The options point to POSITIONS on the screen, never to visual
+  // qualities, so nothing is primed before the word ratings — and they are
+  // laid out where they point, under the shrunk (still visible) grid:
+  //
+  //   [far-left option] [  the six columns  ] [far-right option]
+  //                     [between two columns]
+  //                     [different in a way…]
+  //                     [I can't say        ]
+  //
+  // The two "Further than…" options sit just outside the first and the last
+  // column, on the same line as "Somewhere between…". The grid is shrunk
+  // enough to leave room for them at the sides (at least FOLLOWUP_MIN_SIDE).
+  var FOLLOWUP_SHRINK   = 0.75;  // at most 75% of the block's cell size
+  var FOLLOWUP_MIN_SIDE = 140;   // px kept for each side option
+  var FOLLOWUP_MAX_SIDE = 200;
+  var FOLLOWUP_GAP      = 12;    // px between a side option and the grid
+
+  function _followupHTML() {
+    var T = Loader.text().grid;
+    var byCode = {};
+    T.none_followup.options.forEach(function (o) { byCode[o.code] = o; });
+    function opt(code, cls) {
+      return '<label class="gf-opt' + (cls ? ' ' + cls : '') + '">' +
+             '<input type="radio" name="grid_none_detail" value="' + code + '">' +
+             '<span>' + byCode[code].label + '</span></label>';
+    }
+    return (
+      '<div class="grid-followup">' +
+      '<div class="grid-followup-q">' + T.none_followup.question + '</div>' +
+      '<div class="gf-row">' +
+      opt('beyond_left', 'gf-left') +
+      '<div class="gf-mid">' +
+      opt('between') + opt('other_way') + opt('cant_say') +
+      '</div>' +
+      opt('beyond_right', 'gf-right') +
+      '</div>' +
+      '<button id="grid-followup-continue" class="calib-btn" type="button">' +
+      T.none_followup.button + '</button>' +
+      '</div>'
+    );
+  }
+
+  // Cell size for the follow-up: 75% of the block's, or smaller if needed
+  // to leave room for the two side options.
+  function _followupCell(cellPx, nCols) {
+    var c = CONFIG.grid;
+    var room = (window.innerWidth - 2 * (FOLLOWUP_MIN_SIDE + FOLLOWUP_GAP) - 16 -
+                (nCols - 1) * c.col_gap_px) / nCols - c.cell_chrome_px;
+    return Math.max(60, Math.floor(Math.min(cellPx * FOLLOWUP_SHRINK, room)));
   }
 
   // -----------------------------------------------------------------------
   // One screen as a call-function/async node. The result is copied onto
   // the node's own row in on_finish, so each screen is exactly one row.
   // -----------------------------------------------------------------------
-  function _screenNode(jsPsych, screen, index, total) {
+  function _screenNode(jsPsych, ctx, screen, index, total) {
     var result = null;
 
     return {
       type: jsPsychCallFunction,
       async: true,
       func: function (done) {
-        var T = Loader.text();
         var display = jsPsych.getDisplayElement();
-        var screens = Loader.grid();
-        if (_cellPx === null) _cellPx = _computeCell(screens);
+        if (ctx.cellPx === null) ctx.cellPx = _computeCell();
 
-        display.innerHTML = _screenHTML(screen, T, index, total);
+        var innerW = window.innerWidth, innerH = window.innerHeight;
+        display.innerHTML = _screenHTML(screen, ctx.question, ctx.showNone,
+                                        index, total, ctx.cellPx);
 
         var t0       = performance.now();
         var colsEls  = display.querySelectorAll('.grid-col');
-        var noneBtn  = document.getElementById('grid-none');
+        var noneBtn  = document.getElementById('grid-none');   // null in 'normal'
         var contBtn  = document.getElementById('grid-continue');
         var choice   = null;        // column index (0-based), or 'none'
-        var nChanges = 0;
 
         function paint() {
           for (var i = 0; i < colsEls.length; i++) {
             colsEls[i].classList.toggle('selected', choice === i);
           }
-          noneBtn.classList.toggle('selected', choice === 'none');
+          if (noneBtn) noneBtn.classList.toggle('selected', choice === 'none');
           var on = (choice !== null);
           contBtn.disabled = !on;
           contBtn.style.opacity = on ? '1' : '0.35';
@@ -141,8 +214,6 @@ var GridPhase = (function () {
         }
 
         function select(value) {
-          if (choice === value) return;
-          if (choice !== null) nChanges++;
           choice = value;
           paint();
         }
@@ -152,53 +223,87 @@ var GridPhase = (function () {
             select(parseInt(this.getAttribute('data-col'), 10));
           });
         }
-        noneBtn.addEventListener('click', function () { select('none'); });
+        if (noneBtn) noneBtn.addEventListener('click', function () { select('none'); });
         paint();
+
+        function finish(detail) {
+          result.none_detail = detail;
+          if (CONFIG.debug) {
+            console.log('[Grid] ' + ctx.block + ' ' + ctx.sceneSet + ' screen ' +
+                        screen.screen + ' (' + screen.feature + ', ' +
+                        screen.column_order + '): ' +
+                        (result.chose_none ? 'none' : 'column ' +
+                         result.chosen_display_column + ' = level ' +
+                         result.chosen_level_index) +
+                        (detail ? ' | closest: ' + detail : '') +
+                        ' | cell ' + ctx.cellPx + 'px | ' + result.rt_ms + 'ms');
+          }
+          display.innerHTML = '';
+          done();
+        }
 
         contBtn.addEventListener('click', function () {
           if (choice === null) return;
           var rt = Math.round(performance.now() - t0);
-
-          // Rendered size, measured rather than assumed.
-          var img = display.querySelector('.grid-cell');
-          var measured = img ? Math.round(img.getBoundingClientRect().width) : null;
-
-          var col = (choice === 'none') ? null : screen.columns[choice];
-          if (choice === 'none') _anyNone = true;
+          var none = (choice === 'none');
+          var col  = none ? null : screen.columns[choice];
 
           result = {
-            block:                   'grid',
-            analysed:                false,
-            grid_screen:             screen.screen,
-            grid_screen_position:    index + 1,
-            grid_feature:            screen.feature,
-            grid_column_order:       screen.column_order,
-            grid_n_columns:          screen.columns.length,
-            grid_choice:             (choice === 'none') ? 'none' : 'column',
-            grid_choice_column:      col ? col.column : null,
-            grid_choice_level_index: col ? col.level_index : null,
-            grid_choice_level_label: col ? col.level_label : null,
-            grid_choice_chroma:      col ? col.chroma : null,
-            grid_choice_haze:        col ? col.haze : null,
-            grid_scenes:             screen.rows.map(function (r) { return r.scene_id; }).join(';'),
-            grid_n_changes:          nChanges,
-            grid_cell_px:            measured,
-            grid_viewport:           window.innerWidth + 'x' + window.innerHeight,
-            rt:                      rt,
+            block:                 ctx.block,
+            set_code:              ctx.setCode,
+            scene_set:             ctx.sceneSet,
+            screen:                screen.screen,
+            feature:               screen.feature,
+            column_order:          screen.column_order,
+            scene_ids:             screen.rows.map(function (r) { return r.scene_id; }).join(';'),
+            // 1-based position AS DISPLAYED (= the column's display_column).
+            chosen_display_column: none ? null : choice + 1,
+            chosen_level_index:    none ? null : col.level_index,
+            chose_none:            none,
+            none_detail:           null,
+            rt_ms:                 rt,
+            cell_px:               ctx.cellPx,
+            inner_w:               innerW,
+            inner_h:               innerH,
           };
 
-          if (CONFIG.debug) {
-            console.log('[Grid] screen ' + screen.screen + ' (' + screen.feature +
-                        ', ' + screen.column_order + '): ' +
-                        (col ? 'column ' + col.column + ' = ' + col.level_label : 'none') +
-                        ' | changes ' + nChanges + ' | cell ' + measured + 'px | ' + rt + 'ms');
-          }
+          // "None of these" -> the optional follow-up, on the same row. The
+          // grid stays in view, shrunk and no longer clickable, and the
+          // footer is replaced by the question.
+          if (none && ctx.followUp) {
+            var small = _followupCell(ctx.cellPx, screen.columns.length);
+            var cells = display.querySelectorAll('.grid-cell');
+            for (var c = 0; c < cells.length; c++) {
+              cells[c].style.width = small + 'px';
+              cells[c].style.height = small + 'px';
+            }
+            var colsWrap = display.querySelector('.grid-cols');
+            if (colsWrap) colsWrap.classList.add('grid-cols-inert');
+            for (var s = 0; s < colsEls.length; s++) colsEls[s].classList.remove('selected');
+            var foot = display.querySelector('.grid-foot');
+            if (foot) foot.outerHTML = _followupHTML();
 
-          display.innerHTML = '';
-          done();
+            // Line the row up with the grid: the middle track is exactly as
+            // wide as the columns, so the side options start just outside
+            // the first and the last column.
+            var row = display.querySelector('.gf-row');
+            if (row && colsWrap) {
+              var gw = Math.ceil(colsWrap.getBoundingClientRect().width);
+              var side = Math.floor((window.innerWidth - gw) / 2 - FOLLOWUP_GAP - 8);
+              side = Math.max(90, Math.min(FOLLOWUP_MAX_SIDE, side));
+              row.style.gridTemplateColumns = side + 'px ' + gw + 'px ' + side + 'px';
+              row.style.columnGap = FOLLOWUP_GAP + 'px';
+            }
+            document.getElementById('grid-followup-continue').addEventListener('click', function () {
+              var sel = display.querySelector('input[name="grid_none_detail"]:checked');
+              finish(sel ? sel.value : null);
+            }, { once: true });
+            return;
+          }
+          finish(null);
         }, { once: true });
       },
-      data: { block: 'grid' },
+      data: { block: ctx.block },
       on_finish: function (data) {
         if (!result) return;
         for (var k in result) {
@@ -208,81 +313,77 @@ var GridPhase = (function () {
     };
   }
 
-  // -----------------------------------------------------------------------
-  // Free-text follow-up. Built but OFF: runs only if
-  // CONFIG.blocks.grid_none_text is true AND "None of these" was chosen on
-  // at least one screen. Optional — may be left blank.
-  // -----------------------------------------------------------------------
-  function _noneTextNode() {
-    var T = Loader.text();
-    return {
-      timeline: [{
-        type: jsPsychSurveyText,
-        questions: [{
-          prompt: T.grid.none_text_prompt,
-          name: 'grid_none_text',
-          rows: 4,
-          columns: 60,
-          required: false,
-        }],
-        button_label: T.grid.none_text_button,
-        data: { block: 'grid_none_text', analysed: false },
-        on_finish: function (data) {
-          var r = data.response || {};
-          data.grid_none_text = (r.grid_none_text || '').trim();
-        },
-      }],
-      conditional_function: function () {
-        return !!CONFIG.blocks.grid_none_text && _anyNone;
-      },
-    };
-  }
-
-  function _instructionNode() {
-    var T = Loader.text();
+  function _instructionNode(blockName) {
+    var T = Loader.text().grid;
+    var B = T[blockName];
     return {
       type: jsPsychHtmlButtonResponse,
-      stimulus: '<div class="card"><h2>' + T.grid.title + '</h2>' +
-                T.grid.instructions + '</div>',
-      choices: [T.grid.button_begin],
-      data: { block: 'grid_instructions' },
+      stimulus: '<div class="card"><h2>' + B.title + '</h2>' +
+                B.instructions + '</div>',
+      choices: [T.button_begin],
+      data: { block: 'grid_instructions_' + blockName },
     };
   }
 
-  function _preloadGate() {
+  function _preloadGate(blockName, urls) {
     var T = Loader.text();
     return {
       type: jsPsychPreload,
-      images: Loader.gridPreloadURLs(),
+      images: urls,
       message: T.preload.message,
       show_progress_bar: true,
       continue_after_error: false,
       error_message: T.preload.error,
       max_load_time: 300000,
-      data: { block: 'grid_preload' },
+      data: { block: 'grid_preload_' + blockName },
     };
   }
 
   // -----------------------------------------------------------------------
-  // Build the block. Returns [] when the active set has no grid.
+  // Build ONE block: 'episode' or 'normal', for this session's set_code.
   // -----------------------------------------------------------------------
-  function buildNodes(jsPsych) {
-    var screens = Loader.grid();
-    if (!screens || !screens.length) {
-      if (CONFIG.debug) {
-        console.log('[Grid] no grid for set "' + Loader.stimulusSet() +
-                    '" — block skipped.');
-      }
+  function buildNodes(jsPsych, blockName, setCode) {
+    if (!Loader.hasGrid()) {
+      console.warn('[Grid] no grid package loaded — ' + blockName + ' block skipped.');
       return [];
     }
 
-    var nodes = [_preloadGate(), _instructionNode()];
-    screens.forEach(function (s, i) {
-      nodes.push(_screenNode(jsPsych, s, i, screens.length));
+    var def      = Loader.gridBlock(blockName) || {};
+    var sceneSet = Loader.gridSceneSet(blockName, setCode);
+    var screens  = Loader.gridScreens(sceneSet);
+    var T        = Loader.text().grid;
+
+    var ctx = {
+      block:    blockName,
+      setCode:  setCode,
+      sceneSet: sceneSet,
+      showNone: !!def.none_button,
+      followUp: !!def.none_button && !!CONFIG.blocks.grid_none_followup,
+      question: (blockName === 'episode')
+                ? Loader.byGroup(T.question_episode)
+                : T.question_normal,
+      cellPx:   null,    // computed when the block's first screen starts
+    };
+
+    if (CONFIG.debug) {
+      console.log('[Grid] ' + blockName + ' block: set_code ' + setCode +
+                  ' -> scene set ' + sceneSet + ', ' + screens.length + ' screens');
+    }
+
+    var urls = {};
+    screens.forEach(function (s) {
+      s.rows.forEach(function (r) {
+        r.images.forEach(function (p) { urls[Loader.gridImageURL(p)] = true; });
+      });
     });
-    nodes.push(_noneTextNode());
+
+    var nodes = [_preloadGate(blockName, Object.keys(urls)),
+                 _instructionNode(blockName)];
+    screens.forEach(function (s, i) {
+      nodes.push(_screenNode(jsPsych, ctx, s, i, screens.length));
+    });
     return nodes;
   }
 
-  return { buildNodes: buildNodes };
+  return { buildNodes: buildNodes, computeCell: _computeCell };
 })();

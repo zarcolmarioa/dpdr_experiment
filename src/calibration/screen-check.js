@@ -1,23 +1,39 @@
 /* =========================================================================
- * screen-check.js — fullscreen, viewport gate, and stimulus size check.
+ * screen-check.js — full screen, window check, and stimulus size check.
+ *
+ * Runs right after the consent screen and BEFORE the participant ID
+ * screen, so a participant who is stopped here has had nothing uploaded —
+ * not even an optional name or email.
  *
  * Three nodes, in order:
  *
- *   1. Fullscreen. Required: it fixes the viewport for the whole session so
- *      the stimuli never change size mid-experiment, and it removes browser
- *      chrome that would otherwise eat the vertical space two 512 px panels
- *      need.
+ *   1. Full screen. Required: it fixes the viewport for the whole session
+ *      so the stimuli never change size mid-experiment, and it removes
+ *      browser chrome that would otherwise eat the vertical space two
+ *      512 px panels need.
  *
- *   2. Viewport gate. A SOFT gate: below the minimum, the participant is
- *      told the study wants a larger screen but may continue anyway. The
- *      viewport is recorded either way, so sessions run on small screens can
- *      be identified, excluded, or used with display size as a covariate.
- *      Below display.hard_min_width the layout genuinely breaks and no
- *      override is offered.
+ *   2. Window check — a HARD STOP. The real trial layout is drawn
+ *      invisibly for a moment: the question in the participant's language
+ *      and group (both from the link), above two panels at exactly
+ *      display.image_px. Every part of it is measured against the window.
+ *      The practice-feedback line, which replaces the question on the
+ *      first practice trial, is measured too. If anything would be cut
+ *      off, by width or by height, the session stops with a message asking
+ *      the participant to enlarge the window (or reset the browser zoom),
+ *      or to use a larger screen, and to reopen the link. There is no
+ *      "continue anyway". Nothing is saved for a stopped session.
  *
- *   3. Size check. Renders two panels at the configured size and reports
- *      the measured on-screen dimensions. This is how you confirm the
- *      stimuli are displaying at 512 x 512 rather than being scaled.
+ *      When the layout fits, the session continues with no message. The
+ *      full-screen viewport, viewport_ok (the RECOMMENDED minimum,
+ *      display.min_width x min_height) and images_fit are stamped on every
+ *      row.
+ *
+ *      The grid blocks need less room than this (six columns at the 100 px
+ *      floor fit in 842 x 502), so a window that passes here fits them too.
+ *
+ *   3. Size check. Developer screen (CONFIG.blocks.size_check, off for
+ *      participants): renders two panels at the configured size and
+ *      reports the measured on-screen dimensions.
  *
  * FIREFOX NOTE
  * ------------
@@ -30,6 +46,7 @@
 var ScreenCheck = (function () {
 
   var _measured = { width: null, height: null };
+  var _fits     = null;    // result of the window check
 
   // -----------------------------------------------------------------------
   // Put keyboard focus back on the document after a fullscreen transition.
@@ -53,8 +70,25 @@ var ScreenCheck = (function () {
            window.innerHeight >= CONFIG.display.min_height;
   }
 
-  function _viewportHopeless() {
-    return window.innerWidth < CONFIG.display.hard_min_width;
+  // Is this element entirely inside the window? Half a pixel of slack for
+  // sub-pixel rounding.
+  function _inside(el) {
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    var eps = 0.5;
+    return r.left >= -eps && r.top >= -eps &&
+           r.right  <= window.innerWidth  + eps &&
+           r.bottom <= window.innerHeight + eps;
+  }
+
+  // Everything that must be visible: the question line and both panels.
+  function _layoutFits(probe) {
+    var parts = probe.querySelectorAll('.stim-prompt, .stim-panel');
+    if (parts.length < 3) return false;
+    for (var i = 0; i < parts.length; i++) {
+      if (!_inside(parts[i])) return false;
+    }
+    return true;
   }
 
   // -----------------------------------------------------------------------
@@ -68,6 +102,10 @@ var ScreenCheck = (function () {
       'height:' + CONFIG.display.image_px + 'px;">' +
       '<span class="mock-label">' + label + '</span></div>'
     );
+  }
+
+  function _card(title, body) {
+    return '<div class="card"><h2>' + title + '</h2>' + body + '</div>';
   }
 
   function buildNodes(jsPsych) {
@@ -87,62 +125,76 @@ var ScreenCheck = (function () {
       });
     }
 
-    // --- 2. Viewport gate -----------------------------------------------
+    // --- 2. Window check ------------------------------------------------
     if (CONFIG.calibration.screen_check) {
 
-      // Record the post-fullscreen viewport on every session.
+      // The real trial layout, invisible, measured as soon as it is drawn.
       nodes.push({
-        type: jsPsychCallFunction,
-        func: function () {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function () {
+          var T = Loader.text();
+          return '<div class="fit-probe" aria-hidden="true">' +
+                 PairsPhase.trialHTML(Loader.byGroup(T.prompt.main), null, null) +
+                 '</div>';
+        },
+        choices: 'NO_KEYS',
+        trial_duration: 60,
+        data: { block: 'window_check' },
+        on_load: function () {
+          var probe  = document.querySelector('.fit-probe');
+          var prompt = probe ? probe.querySelector('.stim-prompt') : null;
+          var fits   = !!probe && _layoutFits(probe);
+
+          // The first practice trial shows a feedback line in place of the
+          // question; it must fit too.
+          if (fits && prompt) {
+            prompt.innerHTML = Loader.text().practice.feedback_first;
+            fits = _layoutFits(probe);
+          }
+          _fits = fits;
+
           jsPsych.data.addProperties({
             viewport_width_fs:  window.innerWidth,
             viewport_height_fs: window.innerHeight,
             viewport_ok:        _viewportOK(),
             allow_scaling:      CONFIG.display.allow_scaling,
-            // Whether two panels plus the gap fit without being cut off.
-            images_fit:         (window.innerWidth >=
-                                 CONFIG.display.image_px * 2 +
-                                 CONFIG.display.gap_px),
+            // Both panels and the question shown whole, without scrolling.
+            images_fit:         fits,
           });
+          if (CONFIG.debug) {
+            console.log('[Screen] window ' + window.innerWidth + 'x' +
+                        window.innerHeight + ' — trial layout ' +
+                        (fits ? 'fits' : 'DOES NOT FIT: session stops'));
+          }
         },
       });
 
-      // Warning + override, shown only when the viewport is too small.
+      // The stop. Waits for the page to be closed: no key or button moves
+      // on, so the session never reaches the ID screen or the save step.
       nodes.push({
         timeline: [{
           type: jsPsychHtmlKeyboardResponse,
           stimulus: function () {
-            var hopeless = _viewportHopeless();
-            var scaling = CONFIG.display.allow_scaling;
             var S = Loader.text().screen;
-            var html =
-              '<div class="card"><h2>' + S.small_title + '</h2>' +
-              S.small_intro +
-              (scaling ? S.small_scaled : S.small_cut) +
+            return _card(S.small_title,
+              S.small_body +
               '<p class="hint">' +
               S.small_size.replace('{W}', window.innerWidth)
                           .replace('{H}', window.innerHeight)
                           .replace('{MW}', CONFIG.display.min_width)
                           .replace('{MH}', CONFIG.display.min_height) +
-              '</p>';
-
-            if (hopeless) {
-              html += S.small_hopeless + '</div>';
-            } else {
-              html += S.small_continue +
-                      '<p class="hint">' + S.small_hint + '</p></div>';
+              '</p>');
+          },
+          choices: 'NO_KEYS',
+          data: { block: 'screen_stop' },
+          on_load: function () {
+            // Leave full screen so the participant can resize or close.
+            if (document.fullscreenElement && document.exitFullscreen) {
+              document.exitFullscreen().catch(function () {});
             }
-            return html;
-          },
-          choices: function () {
-            return _viewportHopeless() ? 'NO_KEYS' : [' '];
-          },
-          data: { block: 'screen_warning' },
-          on_finish: function (data) {
-            data.continued_on_small_screen = !_viewportHopeless();
           },
         }],
-        conditional_function: function () { return !_viewportOK(); },
+        conditional_function: function () { return _fits === false; },
       });
     }
 
@@ -186,6 +238,8 @@ var ScreenCheck = (function () {
                   : '<span style="color:#ffb3ac">Does not match the target. ' +
                     'With allow_scaling off this means the panels are being ' +
                     'cut off by the viewport.</span>')) +
+            '<br>Window check: ' + (_fits === null ? 'not run' :
+                                    (_fits ? 'layout fits' : 'layout cut off')) +
             '<br>Device pixel ratio: ' + window.devicePixelRatio +
             ' &nbsp;|&nbsp; viewport: ' + window.innerWidth + ' &times; ' +
             window.innerHeight +
@@ -202,10 +256,12 @@ var ScreenCheck = (function () {
   }
 
   function measured() { return _measured; }
+  function fits()     { return _fits; }
 
   return {
     buildNodes:   buildNodes,
     measured:     measured,
+    fits:         fits,
     restoreFocus: _restoreFocus,
   };
 })();

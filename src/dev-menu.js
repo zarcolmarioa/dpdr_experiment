@@ -61,6 +61,12 @@ var DevMenu = (function () {
 
   var SCREEN = ['fullscreen', 'screen_check'];
 
+  // The platform an upload test uses: this page's own, except that on your
+  // computer (where 'auto' means no upload) it uploads to DataPipe.
+  function _uploadPlatform() {
+    return (Platform.name() === 'local') ? 'github' : Platform.name();
+  }
+
   // -----------------------------------------------------------------------
   // Presets. Each returns the overrides to apply.
   //
@@ -167,12 +173,14 @@ var DevMenu = (function () {
     {
       id: 'save_test',
       label: 'Upload test — 3 trials + both grid blocks',
-      note: 'Three pair trials, the two grid blocks, then uploads to ' +
-            'DataPipe/OSF. Use to check the save path.',
+      note: 'Three pair trials, the two grid blocks, then saves as this ' +
+            'platform does: DataPipe/OSF on GitHub Pages and on your computer, ' +
+            'Pavlovia on Pavlovia. Use to check the save path.',
       upload: true,
       apply: function () {
         return _merge(_only(['main', 'grid_episode', 'grid_normal'], SCREEN), {
           limits: { max_trials: 3, max_practice: 0 },
+          platform: _uploadPlatform(),
         });
       },
     },
@@ -240,7 +248,17 @@ var DevMenu = (function () {
               ? '<code>' + _esc(summary.interview_date) + '</code>' : '(none)') + '</td></tr>';
     html += '<tr><th>set_code</th><td>' + ((setCodeParam === '0' || setCodeParam === '1')
               ? '<code>' + setCodeParam + '</code> (fixed)' : 'random') + '</td></tr>';
-    html += '<tr><th>platform</th><td><code>' + _esc(CONFIG.platform) + '</code></td></tr>';
+    html += '<tr><th>platform</th><td><code>' + _esc(Platform.name()) + '</code>' +
+            (CONFIG.platform === 'auto' ? ' (auto, from this address)' : ' (set in config.js)') +
+            ' &mdash; presets save locally; the upload test saves via <code>' +
+            _esc(_uploadPlatform()) + '</code></td></tr>';
+    html += '<tr><th>libraries</th><td><code>' + _esc(Platform.libraries()) + '</code>' +
+            (CONFIG.libraries !== Platform.libraries()
+              ? ' (config says <code>' + _esc(CONFIG.libraries) + '</code>, only on Pavlovia)' : '') +
+            '</td></tr>';
+    html += '<tr><th>name/email</th><td><code>' + _esc(Platform.contactStorage()) + '</code>' +
+            (Platform.contactStorage() === 'results_file'
+              ? ' (kept in the response file)' : ' (separate DataPipe upload)') + '</td></tr>';
     html += '</table></div>';
 
     // --- Switchers -------------------------------------------------------
@@ -309,7 +327,7 @@ var DevMenu = (function () {
     html += '</div>' +
             '<p>Pair trials: <input id="dev-n" type="number" min="0" max="205" ' +
             'value="0"> (0 = all 205) &nbsp; ' +
-            '<label class="dev-inline"><input id="dev-upload" type="checkbox"> upload to OSF</label> ' +
+            '<label class="dev-inline"><input id="dev-upload" type="checkbox"> upload (' + _esc(_uploadPlatform()) + ')</label> ' +
             '<button id="dev-run-custom"' + (group ? '' : ' disabled') + '>Run</button></p>' +
             '</div>';
 
@@ -355,7 +373,7 @@ var DevMenu = (function () {
       var up = document.getElementById('dev-upload').checked;
       _apply({ blocks: blocks, calibration: calibration,
                limits: { max_trials: n, max_practice: 0 } });
-      if (!up) CONFIG.platform = 'local';
+      CONFIG.platform = up ? _uploadPlatform() : 'local';
       console.log('[Dev] custom — blocks=', blocks, 'calibration=', calibration,
                   'trials=' + (n || 'all') + ', upload=' + up);
       document.body.innerHTML = '';

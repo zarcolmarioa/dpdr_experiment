@@ -26,7 +26,10 @@
  * id_source = 'no_id'. With a valid ?pid= the ID is required as before and
  * name and email stay optional.
  *
- * NAME AND EMAIL are handled with care:
+ * NAME AND EMAIL are handled with care. Where they go depends on
+ * Platform.contactStorage() (CONFIG.participant.contact_storage):
+ *
+ * 'datapipe' (GitHub Pages, and local runs):
  *   - they are REMOVED from the jsPsych data as soon as the screen ends, so
  *     they never appear in the response CSV uploaded to OSF;
  *   - they are uploaded straight away as a separate one-row CSV to a
@@ -34,10 +37,18 @@
  *     that identifies people can be restricted or deleted on its own;
  *   - the response data records only whether each was given, and whether
  *     the separate upload succeeded (contact_saved).
- * Uploading at the start means contact details survive even if the
- * participant abandons the session partway. The upload happens on every
- * platform, including local and dev runs, so it can be tested quickly —
- * those files are flagged is_test / is_dev.
+ *   Uploading at the start means contact details survive even if the
+ *   participant abandons the session partway. The upload happens on every
+ *   platform, including local and dev runs, so it can be tested quickly —
+ *   those files are flagged is_test / is_dev.
+ *
+ * 'results_file' (Pavlovia):
+ *   - the typed form answers are still removed (data.response = null), but
+ *     name and email are kept as contact_name and contact_email on this
+ *     screen's row only, and saved with the responses at the end, in the
+ *     private Pavlovia project. Nothing is sent to DataPipe and
+ *     contact_saved stays empty. A participant who abandons the session
+ *     leaves nothing behind, contact details included.
  * ========================================================================= */
 
 var ParticipantID = (function () {
@@ -270,6 +281,8 @@ var ParticipantID = (function () {
     var contactInstead = askId && !urlValid && !!P.allow_manual_id &&
                          askName && askEmail;
 
+    var inResultsText = (Platform.contactStorage() === 'results_file');
+
     var fields = '<div class="contact-fields">';
     if (askId) {
       // Read-only when the link supplied a valid ID and typing is not
@@ -302,11 +315,16 @@ var ParticipantID = (function () {
 
     var formNode = {
       type: jsPsychSurveyHtmlForm,
+      // The *_results_file texts say where name and email are kept on
+      // Pavlovia (with the responses, not separately).
       preamble: '<div class="card contact-card"><h2>' + T.title + '</h2>' +
                 (contactInstead
-                  ? T.body_no_pid
+                  ? (inResultsText ? T.body_no_pid_results_file : T.body_no_pid)
                   : ((askId ? T.body : '') +
-                     ((askName || askEmail) ? T.optional_note : ''))) +
+                     ((askName || askEmail)
+                       ? (inResultsText ? T.optional_note_results_file
+                                        : T.optional_note)
+                       : ''))) +
                 '</div>',
       html: fields,
       button_label: T.button,
@@ -374,6 +392,14 @@ var ParticipantID = (function () {
         data.contact_name_given  = askName  ? (name.length  > 0) : null;
         data.contact_email_given = askEmail ? (email.length > 0) : null;
 
+        // Pavlovia: name and email stay in the response file, on this row
+        // only (empty when not given).
+        var inResults = (Platform.contactStorage() === 'results_file');
+        if (inResults) {
+          data.contact_name  = askName  ? name  : null;
+          data.contact_email = askEmail ? email : null;
+        }
+
         jsPsych.data.addProperties({
           contact_name_given:  data.contact_name_given,
           contact_email_given: data.contact_email_given,
@@ -381,7 +407,7 @@ var ParticipantID = (function () {
 
         // Upload name/email only once the ID is accepted, so the contact
         // file is always linked to a real ID.
-        if (_id && (name || email)) {
+        if (!inResults && _id && (name || email)) {
           _uploadContact(name, email);
         }
       },

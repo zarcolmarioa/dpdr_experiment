@@ -7,8 +7,9 @@ analysable table.
 Experiment: two-alternative forced choice between two edits of the same
 photograph (local contrast and/or colour saturation), plus two descriptive
 grid blocks, word ratings and state items. Stimulus set **v4** (frozen,
-preregistered). Uploaded via DataPipe (experiment `yZIXKcYy54Uw`) to OSF
-component `qsv56`.
+preregistered). On GitHub Pages uploaded via DataPipe (experiment
+`VoYGtg5yKGr2`) to OSF component `qsv56`; on Pavlovia stored in the private
+Pavlovia project's `data/` folder.
 
 ---
 
@@ -31,6 +32,21 @@ of one session can be matched by name. It equals `session_start_time`
 
 Times **inside** the file are UTC (ISO 8601, ending in `Z`).
 
+**On Pavlovia** (`platform = pavlovia`) the file is stored in the Pavlovia
+project's `data/` folder, and Pavlovia adds the project name in front and
+its own date at the end:
+
+```
+<project>_<participant_id>_v4_<session start, Japan time>_SESSION_<date>.csv
+e.g. dpdr_experiment_R_9rJJWk01c767jE8_v4_2026-11-03T14-10-40_SESSION_2026-11-03_14h36.12.345.csv
+```
+
+The middle part is the GitHub file name without `.csv`. Pavlovia's date at
+the end is the time of saving on the participant's computer clock — use the
+stamp in the middle (or `session_start_time`), not that. A pilot run
+(Pavlovia's **Pilot** button) is not stored on Pavlovia: the same file is
+downloaded to the computer that ran it.
+
 A full session produces **660 rows and about 128 columns** (one or two more
 rows if ID entry needed a retry).
 
@@ -43,13 +59,18 @@ early exits also leave no file, by design:
   the trial layout whole. It runs before the ID screen, so not even a
   name or email has been uploaded.
 
-If the upload itself fails (network problem, or "Enable data collection"
-switched off on DataPipe), the final screen offers the participant a button
-to download the CSV and email it to you, so that session is not lost.
+If the upload itself fails (network problem, "Enable data collection"
+switched off on DataPipe, or Pavlovia not Running / out of credits), the
+final screen offers the participant a button to download the CSV and email
+it to you, so that session is not lost.
 
-Name and email, if given, are **not** in this file. They go to a separate
-file on a separate OSF component, uploaded as soon as they are entered —
-see §13.
+Name and email, if given, are **not** in this file on GitHub Pages
+(`contact_storage = datapipe`). They go to a separate file on a separate OSF
+component, uploaded as soon as they are entered — see §15. **On Pavlovia**
+(`contact_storage = results_file`) they **are** in this file, as
+`contact_name` and `contact_email` on the `participant_id` row only, and
+there is no separate file; the file stays in the private Pavlovia project.
+Remove those two columns before sharing Pavlovia data.
 
 **`null` in the file.** jsPsych writes a missing value as the literal text
 `null`. `pandas.read_csv` treats it as missing by default; other tools may
@@ -93,8 +114,9 @@ participant sees them. The `block` column is how you find each step's rows.
 | 1 | Consent | `consent` | 1 | `consent_given` (also stamped on every row). Declining ends the session; no file |
 | 2 | Full screen | `fullscreen` | 1 | — |
 | 3 | Window check | `window_check` | 1 | `viewport_*_fs`, `viewport_ok`, `images_fit` (session-level). A window that is too small stops the session here (`screen_stop`, never saved) |
+| — | Pavlovia session opened | `pavlovia_init` | 1 | **Pavlovia only.** Nothing recorded |
 | 4 | Size check | `size_check` | 0 | **developer screen, off for participants** (dev preset only) |
-| 5 | Participant details (ID + optional name and email) | `participant_id` | 1 | the ID, how it arrived, and only **whether** a name / email was given (§13) |
+| 5 | Participant details (ID + optional name and email) | `participant_id` | 1 | the ID, how it arrived, and **whether** a name / email was given (§5); on Pavlovia also `contact_name`, `contact_email` |
 | — | ID stamp, background download start | *(empty)* | 2 | — |
 | 6 | Brightness (+ viewing-conditions note) | `calibration_brightness` | 1 | `brightness_confirmed` (session-level). The note about night mode / colour filters is not confirmed or recorded |
 | 7 | Gamma match | *(empty)* | 3 | `gamma_*` (session-level, §5) |
@@ -158,7 +180,8 @@ These repeat identically on every row, so read them from any row with
 | `id_source` | `url` / `typed` / `no_id` | on the `participant_id` row only. `url` = came from the link unchanged; `no_id` = no ID given, name and email instead |
 | `id_entered`, `id_valid` | | on the `participant_id` row only |
 | `contact_name_given`, `contact_email_given` | `True` / `False` | whether the participant filled in the optional field |
-| `contact_saved` | `True` / `False` / empty | whether DataPipe received the separate contact file. Empty if nothing was given |
+| `contact_saved` | `True` / `False` / empty | whether DataPipe received the separate contact file. Empty if nothing was given, and always empty on Pavlovia (no separate file) |
+| `contact_name`, `contact_email` | as typed | **Pavlovia only** (`contact_storage = results_file`), on the `participant_id` row only; empty if not given. Absent from GitHub files |
 
 **Exclude any session where `is_test` or `is_dev` is `True`.**
 
@@ -168,8 +191,9 @@ Those who gave only a name and email have `participant_id` =
 `NOID_DRCHAIN26_` + 8 random characters (unique per session) and
 `id_source = no_id`. They are real sessions (`is_test = False`). The same
 `participant_id` is in the contact file (§15), which is the **only** way
-to tell who they are — so check `contact_saved` on these sessions. To find
-them: `d.participant_id.str.startswith('NOID_')`.
+to tell who they are — so check `contact_saved` on these sessions. On
+Pavlovia the name and email are in the same file instead (`contact_name`,
+`contact_email`). To find them: `d.participant_id.str.startswith('NOID_')`.
 
 ### Experiment
 
@@ -179,7 +203,9 @@ them: `d.participant_id.str.startswith('NOID_')`.
 | `experiment_version` | `0.9.0-v4` (development); `1.0.0` from launch |
 | `stimulus_set` | `v4` |
 | `set_code` | `0` / `1` — the grid set swap, drawn once per session (§8) |
-| `platform` | `github` / `pavlovia` / `local` |
+| `platform` | `github` / `pavlovia` / `local` — where the session actually ran (with `platform: 'auto'`, worked out from the address) |
+| `contact_storage` | `datapipe` (separate contact file, §15) / `results_file` (name and email in this file, Pavlovia) |
+| `libraries` | `bundled` (our `vendor/` copy of jsPsych 7.1.2 + jQuery 2.2.0) / `pavlovia` (Pavlovia's own `lib/vendors/` copy) |
 | `language` | `en` / `ja` |
 | `session_start_time` | UTC, ISO 8601. When the consent screen appeared. The file names carry this moment in Japan time |
 | `session_end_time` | UTC. When the save step started (after the last screen, before the upload) |
@@ -597,10 +623,14 @@ did not load for that participant.
 
 ## 15. The separate contact file
 
+**GitHub Pages and local runs only** (`contact_storage = datapipe`). On
+Pavlovia there is no contact file: name and email are in the response file
+(§1, §5).
+
 If a participant gives a name or email on the ID screen, those values are
 uploaded **straight away**, as a separate one-row CSV, to a separate
-DataPipe experiment (`T2jZJusQxUGv`) and OSF component (`qt9x8`) — even if
-the session is never finished. They are removed from the response data
+DataPipe experiment (`contact_datapipe.experiment_id`, now `T8mzFmXrMcjw`)
+and OSF component (`qt9x8`) — even if the session is never finished. They are removed from the response data
 before anything else happens, so the response files on `qsv56` stay
 pseudonymised. (The consent text tells participants this.)
 

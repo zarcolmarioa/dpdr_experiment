@@ -80,7 +80,7 @@ The values are already in `config.js`:
 
 ```js
 datapipe: {
-  experiment_id: 'yZIXKcYy54Uw',
+  experiment_id: 'VoYGtg5yKGr2',
   osf_project:   'tx5h2',
   osf_component: 'qsv56',
 }
@@ -146,19 +146,19 @@ first): every preset except "Upload test" saves locally.
 | Symptom | Cause |
 |---|---|
 | Completion screen says FAILURE | "Enable data collection" is off |
-| No upload attempted | `CONFIG.platform` is not `'github'` |
+| No upload attempted | the page is not on `*.github.io` (`platform: 'auto'`), or `platform` is set to `'local'` |
 | Console: `jsPsychPipe is not defined` | unpkg blocked or offline |
 | File arrives but is empty | check the console for an error thrown before the save node |
 
 ### Testing without uploading
 
-Set `platform: 'local'` in `config.js` and serve the folder over HTTP
-(`python3 -m http.server 8000`, then open
-`http://localhost:8000/?pid=Z_21121989&group=participant`). The CSV
-downloads to your Downloads folder and nothing is sent anywhere — except
-the separate contact file, if you type a name or email (see
-`DATA_DICTIONARY.md` §15). Useful for checking the output columns without
-adding junk to OSF. Or use `dev.html` → "Full session (local)".
+Serve the folder over HTTP on your computer (`python3 -m http.server 8000`,
+then open `http://localhost:8000/?pid=Z_21121989&group=participant`). With
+`platform: 'auto'` this is `local`: the CSV downloads to your Downloads
+folder and nothing is sent anywhere — except the separate contact file, if
+you type a name or email (see `DATA_DICTIONARY.md` §15). Useful for checking
+the output columns without adding junk to OSF. Or use `dev.html` → "Full
+session (local)".
 
 ---
 
@@ -250,27 +250,125 @@ check the anchoring screen shows the right wording.
 
 ---
 
-## 7. Switching to Pavlovia
+## 7. Pavlovia
 
-Change one line in `config.js`:
+The same files run on GitHub Pages and on Pavlovia. With `platform: 'auto'`
+(the default in `config.js`) the experiment sees where it is served from
+and saves accordingly:
 
-```js
-platform: 'pavlovia',
+| Served from | `platform` | Responses saved to | Name and email (if given) |
+|---|---|---|---|
+| `*.github.io` | `github` | DataPipe → OSF `qsv56` | separate file, DataPipe → OSF `qt9x8`, straight away |
+| `run.pavlovia.org` | `pavlovia` | the Pavlovia project's `data/` folder | in the response file (`contact_name`, `contact_email`), at the end |
+| your computer | `local` | downloaded CSV | separate DataPipe file, as on GitHub |
+
+The name/email rule is `participant.contact_storage: 'auto'`. On Pavlovia
+the consent and ID screens use their `*_results_file` wording, which says
+the name and email are stored with the responses (see
+`text/*/instructions.js`; replace `consent.body_results_file` with the
+approved wording too). Nothing is sent to DataPipe from Pavlovia.
+
+Libraries: `libraries: 'bundled'` (default) loads our copy of jsPsych
+7.1.2, its plugins and jQuery 2.2.0 from `vendor/` — byte-identical to the
+official releases. `libraries: 'pavlovia'` loads the copy Pavlovia serves
+itself under `lib/vendors/` instead, as in the earlier Pavlovia experiment;
+it exists only on Pavlovia (anywhere else `vendor/` is used). The Pavlovia
+plugin `jspsych-7-pavlovia-2021.12.js` is always our copy, in the top
+folder. Every row records `platform`, `libraries` and `contact_storage`.
+
+### Two folders, never mixed
+
+Pavlovia stores each result file **as a commit in the project's GitLab
+repository** (`data/` folder). The GitHub repository is public. So:
+
+- **Folder A** — this GitHub repository. You edit and commit here.
+- **Folder B** — a separate clone of the Pavlovia project. You never edit
+  it by hand, never add GitHub as a remote, and never copy anything from
+  it back into A. Results stay in B (and on Pavlovia).
+
+`tools/sync_to_pavlovia.sh` copies a committed version of A into B.
+
+### First time
+
+1. On pavlovia.org: **Dashboard → Experiments → New** (or create the
+   project on gitlab.pavlovia.org). Set its visibility to **Private**.
+   Its default branch is `master`.
+2. Clone it next to (not inside) folder A. Pavlovia's GitLab asks for your
+   Pavlovia user name and password (or an access token):
+
+   ```bash
+   mkdir -p ~/pavlovia && cd ~/pavlovia
+   git clone https://gitlab.pavlovia.org/<user>/<project>.git
+   ```
+
+3. From folder A, copy the committed experiment across, then commit and
+   push in folder B (the script prints the two commands):
+
+   ```bash
+   cd ~/<path-to>/dpdr_experiment            # folder A
+   tools/sync_to_pavlovia.sh ~/pavlovia/<project>
+   cd ~/pavlovia/<project>
+   git commit -m "Deploy <commit>"
+   git push
+   ```
+
+   The first push is ~150 MB (the v4 images). If it fails part-way, run
+   `git config http.postBuffer 524288000` in folder B and push again.
+   The old stimulus sets `lum_p05` and `contrast_local` are not copied.
+
+4. On the Pavlovia experiment page: keep the saving format **CSV** (if
+   the page offers a choice), leave **Save incomplete results OFF** (an
+   abandoned session must leave nothing behind — the consent text says
+   so), and assign credits or a licence. Pavlovia opens `index.html`.
+
+### Piloting, then Running
+
+- **Piloting**: open the experiment with the **Pilot** button. Each pilot
+  run counts as a session, but the CSV is **downloaded to your computer**,
+  not stored on Pavlovia. With `debug: true` the last screen says
+  "PILOTING — file downloaded to this computer".
+- **Running**: results go to the project's `data/` folder, one file per
+  session, named
+
+  ```
+  <project>_<participant_id>_v4_<Japan-time stamp>_SESSION_<date>.csv
+  ```
+
+  The middle part is the same as the GitHub file name
+  (`<participant_id>_v4_<Japan-time stamp>`). Download them from the
+  experiment page (**Download results**) or with `git pull` in folder B.
+
+The Pavlovia session is opened only after the consent screen and the window
+check, so a participant who declines or whose window is too small never
+opens one (and never sees the browser's "leave this page?" warning).
+
+### Links
+
+```
+https://run.pavlovia.org/<user>/<project>/?pid=R_xxxxxxxxxxxxxxx&group=participant&idate=2026-11-03
+https://run.pavlovia.org/<user>/<project>/?pid=R_xxxxxxxxxxxxxxx&group=control
 ```
 
-Then push to the Pavlovia GitLab remote:
+The same parameters as on GitHub (§6). `dev.html` works there too:
+`https://run.pavlovia.org/<user>/<project>/dev.html?group=participant`; its
+"Upload test" saves to Pavlovia.
 
-```bash
-git remote add pavlovia https://gitlab.pavlovia.org/<username>/<repo-name>.git
-git push pavlovia main
-```
+### Updating
 
-On the Pavlovia dashboard, set the experiment to **Piloting** to test, then
-**Running** to collect data. Data is saved by Pavlovia, not DataPipe.
+Commit in folder A, then run `tools/sync_to_pavlovia.sh` and push from B
+again. The script pulls B first (Pavlovia's result commits), never touches
+`data/*.csv`, `config.json` or `lib/`, and writes `DEPLOYED_COMMIT.txt`
+— the commit that is live — for the launch checklist. To deploy another
+branch: `tools/sync_to_pavlovia.sh ~/pavlovia/<project> v4-study-design`.
 
-Both sets of scripts are present in `index.html` at all times. Whichever set
-is not relevant to the current host simply 404s and is unused, so no manual
-commenting out is needed.
+### If saving fails on Pavlovia
+
+| Symptom (debug box on the last screen) | Cause |
+|---|---|
+| Pavlovia session: NOT opened | experiment not activated (no `config.json`), set to Inactive, or no credits/licence |
+| Saving to Pavlovia FAILED | as above, or the network dropped at the end; the participant gets the download-and-email screen |
+| PILOTING — file downloaded | you used the Pilot button, or the experiment is not Running |
+| Page blank, console `initJsPsych is not defined` | `libraries: 'pavlovia'` but Pavlovia did not serve `lib/vendors/`; use `'bundled'` |
 
 ---
 

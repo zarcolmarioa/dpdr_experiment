@@ -11,32 +11,18 @@
        entry point twice, which is hard to diagnose from the symptoms.
        =================================================================== -->
 
-  <!-- jsPsych core ---------------------------------------------------- -->
-  <script src="lib/vendors/jspsych-7.1.2/jspsych.js"></script>
-  <link  href="lib/vendors/jspsych-7.1.2/jspsych.css" rel="stylesheet">
-
-  <!-- jsPsych plugins ----------------------------------------------- -->
-  <script src="lib/vendors/jspsych-7.1.2/plugin-html-keyboard-response.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-survey-text.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-survey-html-form.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-call-function.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-fullscreen.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-preload.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-html-button-response.js"></script>
-  <script src="lib/vendors/jspsych-7.1.2/plugin-survey-likert.js"></script>
-
-  <!-- DataPipe (GitHub Pages hosting). Harmlessly 404s on Pavlovia. ---- -->
-  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe@0.4/dist/index.browser.min.js"></script>
-
-  <!-- Pavlovia (Pavlovia hosting). Harmlessly 404s on GitHub Pages. ---- -->
-  <script src="lib/vendors/jquery-2.2.0.min.js"></script>
-  <script src="jspsych-7-pavlovia-2021.12.js"></script>
-
-  <!-- Styles ---------------------------------------------------------- -->
-  <link href="css/experiment.css" rel="stylesheet">
-
-  <!-- Configuration and experiment code ------------------------------- -->
+  <!-- Configuration first: platform.js reads it. ---------------------- -->
   <script src="config.js"></script>
+
+  <!-- jsPsych 7.1.2 + plugins, and the DataPipe or Pavlovia plugin. ---
+       platform.js writes these tags itself, choosing by CONFIG.platform
+       (GitHub Pages / Pavlovia / your computer) and CONFIG.libraries
+       (our copy in vendor/, or the one Pavlovia serves in lib/vendors/).
+       Do not add them here as well. --------------------------------- -->
+  <script src="src/platform.js"></script>
+
+  <!-- Styles (after jspsych.css, which platform.js adds) ------------- -->
+  <link href="css/experiment.css" rel="stylesheet">
 
   <!-- Participant-facing text. Both languages load; CONFIG.language picks. -->
   <script src="text/en/instructions.js"></script>

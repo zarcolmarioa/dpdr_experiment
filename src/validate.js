@@ -21,6 +21,11 @@
  *     warning while CONFIG.debug is on, and an ERROR on index.html with
  *     debug off — the configuration participants would get.
  *
+ * Platform checks (see platform.js): the platform, libraries and
+ * contact_storage settings must be known values; on Pavlovia the Pavlovia
+ * plugin and jQuery must have loaded; and name/email must not be kept in a
+ * response file that goes to OSF.
+ *
  * What is NOT checked here: whether the image files actually exist on the
  * server. That would need 478 HTTP requests (334 pair + 144 grid). The
  * preload steps do it instead, and report any that 404.
@@ -392,10 +397,14 @@ var Validate = (function () {
       }
     }
     if ((P.collect_name || P.collect_email) &&
+        Platform.contactStorage() === 'datapipe' &&
         !(CONFIG.contact_datapipe && CONFIG.contact_datapipe.experiment_id)) {
       errors.push('Name/email collection is on but CONFIG.contact_datapipe.' +
                   'experiment_id is empty — contact details would be lost.');
     }
+
+    // --- Platform, libraries, where name/email go ------------------------
+    _checkPlatform(P, errors, warnings);
     if (!CONFIG.researcher_contact ||
         /CHANGE_ME/.test(CONFIG.researcher_contact)) {
       warnings.push('CONFIG.researcher_contact is still the placeholder. ' +
@@ -463,6 +472,72 @@ var Validate = (function () {
     };
 
     return _result(errors, warnings, summary);
+  }
+
+  // -----------------------------------------------------------------------
+  // Platform checks — see platform.js.
+  // -----------------------------------------------------------------------
+  var CONTACT_STORAGE = ['auto', 'datapipe', 'results_file'];
+
+  function _checkPlatform(P, errors, warnings) {
+    var platform = Platform.name();
+    if (Platform.PLATFORMS.indexOf(CONFIG.platform) === -1) {
+      errors.push('CONFIG.platform must be one of ' + Platform.PLATFORMS.join(', ') +
+                  ', not "' + CONFIG.platform + '".');
+    }
+    if (Platform.LIBRARIES.indexOf(CONFIG.libraries) === -1) {
+      errors.push('CONFIG.libraries must be one of ' + Platform.LIBRARIES.join(', ') +
+                  ', not "' + CONFIG.libraries + '".');
+    } else if (CONFIG.libraries !== Platform.libraries()) {
+      warnings.push('CONFIG.libraries is "' + CONFIG.libraries + '", which exists ' +
+                    'only on Pavlovia; this page uses our copy in vendor/ instead.');
+    }
+    if (CONTACT_STORAGE.indexOf(P.contact_storage || 'auto') === -1) {
+      errors.push('CONFIG.participant.contact_storage must be one of ' +
+                  CONTACT_STORAGE.join(', ') + ', not "' + P.contact_storage + '".');
+    }
+
+    if (platform === 'pavlovia') {
+      if (typeof jsPsychPavlovia === 'undefined') {
+        errors.push('Platform is pavlovia but the Pavlovia plugin ' +
+                    '(jspsych-7-pavlovia-2021.12.js) did not load — nothing ' +
+                    'could be saved.');
+      }
+      if (typeof jQuery === 'undefined') {
+        errors.push('Platform is pavlovia but jQuery 2.2.0 did not load; the ' +
+                    'Pavlovia plugin needs it.');
+      }
+      if (Platform.detect() !== 'pavlovia') {
+        warnings.push('CONFIG.platform is "pavlovia" but this page is not on ' +
+                      'pavlovia.org; opening the Pavlovia session will fail and ' +
+                      'the participant will get the download fallback.');
+      }
+    }
+    if (platform === 'github' && typeof jsPsychPipe === 'undefined') {
+      warnings.push('Platform is github but the DataPipe plugin did not load ' +
+                    '(unpkg.com unreachable?). Uploads will fail and participants ' +
+                    'will get the download fallback.');
+    }
+
+    var contact = P.collect_name || P.collect_email;
+    if (contact && Platform.contactStorage() === 'results_file' &&
+        platform === 'github') {
+      warnings.push('contact_storage is results_file on GitHub Pages: names and ' +
+                    'email addresses would go into the response file on OSF. ' +
+                    'Use "datapipe" (or "auto") there.');
+    }
+    if (contact && Platform.contactStorage() === 'datapipe' &&
+        platform === 'pavlovia') {
+      warnings.push('contact_storage is datapipe on Pavlovia: names and email ' +
+                    'addresses go to DataPipe/OSF (component ' +
+                    (CONFIG.contact_datapipe || {}).osf_component + '), not to ' +
+                    'the Pavlovia project. Use "auto" to keep them on Pavlovia.');
+    }
+    if (contact && Platform.contactStorage() === 'datapipe' &&
+        typeof jsPsychPipe === 'undefined') {
+      warnings.push('Name/email go to DataPipe but the DataPipe plugin did not ' +
+                    'load; contact details would not be saved.');
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -576,7 +651,11 @@ var Validate = (function () {
     // marked placeholders; they must be replaced before recruiting.
     var gaps = [];
     [['EN', TEXT_EN], ['JA', TEXT_JA]].forEach(function (lang) {
-      _strings(lang[1].consent || {}, 'consent', [], []).forEach(function (s) {
+      // Only the consent text this platform shows (body, or
+      // body_results_file when name/email are kept in the response file).
+      var unused = (Platform.contactStorage() === 'results_file')
+                   ? 'consent.body' : 'consent.body_results_file';
+      _strings(lang[1].consent || {}, 'consent', [unused], []).forEach(function (s) {
         if (PLACEHOLDER.test(s.value)) gaps.push(lang[0] + ' ' + s.path);
       });
       if (CONFIG.blocks.state && lang[1].state) {

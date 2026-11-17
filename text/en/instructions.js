@@ -113,6 +113,47 @@ var TEXT_EN = {
       '<p><b>Contact:</b> [researcher email]. For questions about your rights ' +
       'as a participant: [ethics committee contact]. [Ethics approval ' +
       'number.]</p>',
+    // The same text for Pavlovia, where a name and email address, if
+    // given, are kept in the response file and saved with it at the end
+    // (CONFIG.participant.contact_storage 'results_file'). Only the 'Your
+    // data' and 'Voluntary participation' paragraphs differ. Replace it
+    // with the approved wording too if the study runs on Pavlovia.
+    body_results_file:
+      '<p>You are invited to take part in a research study about how people ' +
+      'perceive their surroundings. It is run by [researcher names] at ' +
+      '[institution].</p>' +
+      '<p><b>What you will do:</b> look at pairs of photographs and choose ' +
+      'between them, then answer a few short questions. It takes about ' +
+      '[25] minutes.</p>' +
+      '<p><b>Risks:</b> we do not expect any risks beyond those of everyday ' +
+      'computer use. Some questions ask about unusual experiences; you may ' +
+      'stop at any time.</p>' +
+      '<p><b>Benefits:</b> there is no direct benefit to you. ' +
+      '[Compensation, if any.]</p>' +
+      '<p><b>Your data:</b> your responses are stored under a study ID. ' +
+      'If you give your name and email address, they are stored in the same ' +
+      'file as your responses, which only the research team can access. ' +
+      'Results are reported only for groups or without identifying ' +
+      'information. [Storage period and who has access.] [Whether ' +
+      'anonymised data may be shared publicly, e.g. on OSF; your name and ' +
+      'email address are never shared.]</p>' +
+      '<p>You may be asked a few short questions about the experience you are ' +
+      'thinking of, such as when and where it happened. These questions are ' +
+      'optional. Your answers, including anything you type, are stored ' +
+      'with your responses, so please do not include names or other details ' +
+      'that could identify you or anyone else.</p>' +
+      '<p><b>Voluntary participation:</b> taking part is voluntary. You may ' +
+      'stop at any time by closing this page. Your responses are saved only ' +
+      'at the end of the study, so if you close the page before then, none of ' +
+      'them are saved. The same applies to your name and email address: they ' +
+      'are optional, and if you give them they are saved together with your ' +
+      'responses at the end. If you take ' +
+      'part without a participant ID, your name and email address are what ' +
+      'links your responses to you. ' +
+      '[How to withdraw data after submission.]</p>' +
+      '<p><b>Contact:</b> [researcher email]. For questions about your rights ' +
+      'as a participant: [ethics committee contact]. [Ethics approval ' +
+      'number.]</p>',
     checkbox:
       'I have read the information above, I am at least 18 years old, and I ' +
       'agree to take part.',
@@ -310,6 +351,12 @@ var TEXT_EN = {
                     '<b>optional</b>. If you give them, they are stored ' +
                     'separately from your answers and used only to contact ' +
                     'you about this study.</p>',
+    // Pavlovia (contact_storage 'results_file'): kept with the answers.
+    optional_note_results_file:
+                    '<p>Your <b>name</b> and <b>email address</b> are ' +
+                    '<b>optional</b>. If you give them, they are stored with ' +
+                    'your answers, which only the research team can access, ' +
+                    'and used only to contact you about this study.</p>',
     name_label:     'Name (optional)',
     email_label:    'Email address (optional)',
     button:         'Continue',
@@ -324,6 +371,16 @@ var TEXT_EN = {
                     'your answers. They are used only to contact you about this ' +
                     'study and, if you give no ID, to link your answers to ' +
                     'you.</p>',
+    // Pavlovia (contact_storage 'results_file'): kept with the answers.
+    body_no_pid_results_file:
+                    '<p>Please enter your participant ID from your invitation ' +
+                    'email.</p>' +
+                    '<p>If you do not have it, enter your <b>name</b> and ' +
+                    '<b>email address</b> instead. Giving all three is best.</p>' +
+                    '<p>Your name and email address are stored with your ' +
+                    'answers, which only the research team can access. They ' +
+                    'are used only to contact you about this study and, if you ' +
+                    'give no ID, to link your answers to you.</p>',
     name_label_plain:  'Name',
     email_label_plain: 'Email address',
     // Plain text: shown by the browser in a small bubble.
